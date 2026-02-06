@@ -1,0 +1,11 @@
+# Email generation prompts
+email_generation:
+  prompt: |
+    Compose an email with the following context:
+    {context}
+
+# Template generation prompts
+template_generation:
+  prompt: |
+    Create a reusable email template for:
+    {requirements}
