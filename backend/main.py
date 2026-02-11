@@ -1,12 +1,12 @@
 """FastAPI application entry point"""
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
-from app.db.session import get_database, close_database
+from app.db.session import get_database
 from app.api.services.userservice import UserService
 from app.api.models.user import UserCreate, UserResponse
-from app.db.session import get_db_session
 from app.db.protocol import Database
 from dotenv import load_dotenv
+import uvicorn
 load_dotenv()
 
 
@@ -17,9 +17,6 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting application...")
     await get_database()
     yield
-    # Shutdown
-    print("🛑 Shutting down application...")
-    await close_database()
 
 
 app = FastAPI(
@@ -48,7 +45,7 @@ async def health_check():
 @app.post("/users", response_model=UserResponse)
 async def create_user(
     user_create: UserCreate,
-    db: Database = Depends(get_db_session)
+    db: Database = Depends(get_database)
 ):
     """Create a new user"""
     service = UserService(db)
@@ -59,7 +56,7 @@ async def create_user(
 @app.get("/users/{uuid}", response_model=UserResponse)
 async def get_user(
     uuid: str,
-    db: Database = Depends(get_db_session)
+    db: Database = Depends(get_database)
 ):
     """Get user by UUID"""
     from uuid import UUID
@@ -72,5 +69,5 @@ async def get_user(
 
 
 if __name__ == "__main__":
-    import uvicorn
+    
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

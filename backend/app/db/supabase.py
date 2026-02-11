@@ -27,29 +27,24 @@ def convert_named_to_positional(query: str, params: dict[str, Any]) -> tuple[str
     return positional_query, positional_params
 
 
-class PostgreSQLDatabase:
+class SupabaseDatabase(Database):
     """PostgreSQL database implementation using asyncpg"""
     
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
         self.pool: Optional[asyncpg.Pool] = None
-        self._migrations_run = False  # Track if migrations have been run
+        self._migrations_run = False 
     
     async def connect(self) -> None:
         """Create connection pool"""
         self.pool = await asyncpg.create_pool(
                     dsn=self.connection_string,
-                    # Pool size (keep small with Supabase)
                     min_size=1,
                     max_size=3,
-                    # REQUIRED for PgBouncer
                     statement_cache_size=0,
-                    # Kill dead connections fast
                     max_inactive_connection_lifetime=60,
-                    # Timeouts
                     command_timeout=30,
                     timeout=30,
-                    # SSL
                     ssl="require",
         )
         print("✅ Database connected successfully")
