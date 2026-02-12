@@ -12,9 +12,6 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting application...")
     await get_database()
     yield
-    # Shutdown
-    print("🛑 Shutting down application...")
-    await close_database()
 
 
 app = FastAPI(
@@ -35,5 +32,5 @@ async def root():
 
 
 if __name__ == "__main__":
-    import uvicorn
+    
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
