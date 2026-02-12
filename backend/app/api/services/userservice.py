@@ -139,23 +139,9 @@ class UserService:
         row = await self.db.fetch_one(self.queries.GET_USER_BY_EMAIL, {"email": email})
         return self._row_to_user(row)
 
-    async def get_user_by_dtu_email(self, dtu_email: str) -> Optional[User]:
-        """Retrieve a user by DTU email (from metadata)"""
-        row = await self.db.fetch_one(self.queries.GET_USER_BY_DTU_EMAIL, {"dtu_email": dtu_email})
-        return self._row_to_user(row)
-
     async def get_user_by_dtu_id(self, dtu_id: str) -> Optional[User]:
         """Retrieve a user by DTU ID number (from metadata)"""
         row = await self.db.fetch_one(self.queries.GET_USER_BY_DTU_ID, {"dtu_id": dtu_id})
-        return self._row_to_user(row)
-
-    async def get_user_by_oauth_id(self, oauth_provider: str, oauth_id: str) -> Optional[User]:
-        """Retrieve a user by OAuth provider and OAuth ID"""
-        params = {
-            "oauth_provider": oauth_provider,
-            "oauth_id": oauth_id
-        }
-        row = await self.db.fetch_one(self.queries.GET_USER_BY_OAUTH, params)
         return self._row_to_user(row)
 
     async def update_user(self, uuid: UUID, user_update: UserUpdate) -> Optional[User]:
@@ -277,15 +263,7 @@ class UserService:
             {"access_level": access_level}
         )
         return [self._row_to_user(row) for row in rows]
-
-    async def get_users_by_gender(self, gender: str) -> list[User]:
-        """Get users filtered by gender (from metadata)"""
-        rows = await self.db.fetch_all(
-            self.queries.GET_USERS_BY_GENDER, 
-            {"gender": gender}
-        )
-        return [self._row_to_user(row) for row in rows]
-
+    
     async def get_students_by_course_year(self, course: str, year: str) -> list[User]:
         """Get students by course and year (from metadata)"""
         pattern = f"%{course}%{year}%"
@@ -295,40 +273,10 @@ class UserService:
         )
         return [self._row_to_user(row) for row in rows]
 
-    async def get_oauth_users(self, oauth_provider: Optional[str] = None) -> list[User]:
-        """Get all OAuth users, optionally filtered by provider"""
-        if oauth_provider:
-            rows = await self.db.fetch_all(
-                self.queries.GET_OAUTH_USERS_BY_PROVIDER,
-                {"oauth_provider": oauth_provider}
-            )
-        else:
-            rows = await self.db.fetch_all(self.queries.GET_ALL_OAUTH_USERS)
-        
-        return [self._row_to_user(row) for row in rows]
-
-    async def get_normal_auth_users(self) -> list[User]:
-        """Get all users registered with normal authentication (non-OAuth)"""
-        rows = await self.db.fetch_all(self.queries.GET_NORMAL_AUTH_USERS)
-        return [self._row_to_user(row) for row in rows]
-
     async def user_exists(self, email: str) -> bool:
         """Check if user exists by email"""
         result = await self.db.fetch_one(self.queries.USER_EXISTS, {"email": email})
         return result is not None
-
-    async def check_email_exists(self, email: str) -> bool:
-        """Check if email already exists"""
-        result = await self.db.fetch_one(self.queries.CHECK_EMAIL_EXISTS, {"email": email})
-        return result.get("count", 0) > 0 if result else False
-
-    async def check_dtu_email_exists(self, dtu_email: str) -> bool:
-        """Check if DTU email already exists (from metadata)"""
-        result = await self.db.fetch_one(
-            self.queries.CHECK_DTU_EMAIL_EXISTS, 
-            {"dtu_email": dtu_email}
-        )
-        return result.get("count", 0) > 0 if result else False
 
     async def check_dtu_id_exists(self, dtu_id: str) -> bool:
         """Check if DTU ID already exists (from metadata)"""

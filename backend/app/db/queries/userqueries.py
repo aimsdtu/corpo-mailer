@@ -38,23 +38,6 @@ class UserQueries:
     SELECT * FROM users WHERE registered_email = :email
     """
 
-    GET_USER_BY_DTU_EMAIL = """
-    SELECT * FROM users WHERE metadata->>'dtu_email' = :dtu_email
-    """
-
-    GET_USER_BY_DTU_ID = """
-    SELECT * FROM users WHERE metadata->>'dtu_id_number' = :dtu_id
-    """
-
-    GET_USER_BY_TOKEN = """
-    SELECT * FROM users WHERE token = :token
-    """
-
-    GET_USER_BY_OAUTH = """
-    SELECT * FROM users
-    WHERE oauth_provider = :oauth_provider AND oauth_id = :oauth_id
-    """
-
     VERIFY_CREDENTIALS = """
     SELECT * FROM users
     WHERE registered_email = :email AND hash = :hash_value
@@ -71,12 +54,6 @@ class UserQueries:
     ORDER BY created_at DESC
     """
 
-    GET_USERS_BY_GENDER = """
-    SELECT * FROM users
-    WHERE metadata->>'gender' = :gender
-    ORDER BY created_at DESC
-    """
-
     GET_USERS_BY_ACCESS_LEVEL = """
     SELECT * FROM users
     WHERE access_level = :access_level
@@ -87,24 +64,6 @@ class UserQueries:
     SELECT * FROM users
     WHERE metadata->>'designation' = 'student'
     AND metadata->>'course_and_year_of_study' LIKE :course_year_pattern
-    ORDER BY created_at DESC
-    """
-
-    GET_OAUTH_USERS_BY_PROVIDER = """
-    SELECT * FROM users
-    WHERE oauth_provider = :oauth_provider
-    ORDER BY created_at DESC
-    """
-
-    GET_ALL_OAUTH_USERS = """
-    SELECT * FROM users
-    WHERE oauth_provider IS NOT NULL
-    ORDER BY created_at DESC
-    """
-
-    GET_NORMAL_AUTH_USERS = """
-    SELECT * FROM users
-    WHERE oauth_provider IS NULL
     ORDER BY created_at DESC
     """
 
@@ -184,16 +143,6 @@ class UserQueries:
     # Existence checks
     USER_EXISTS = """
     SELECT 1 FROM users WHERE registered_email = :email LIMIT 1
-    """
-
-    CHECK_EMAIL_EXISTS = """
-    SELECT COUNT(*) as count FROM users
-    WHERE registered_email = :email
-    """
-
-    CHECK_DTU_EMAIL_EXISTS = """
-    SELECT COUNT(*) as count FROM users
-    WHERE metadata->>'dtu_email' = :dtu_email
     """
 
     CHECK_DTU_ID_EXISTS = """
