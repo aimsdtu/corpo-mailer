@@ -1,7 +1,17 @@
 [project]
 name = "corpo-mailer-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Backend for CorpoMailer — DTU automated mailing service"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "asyncpg>=0.31.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "fastapi>=0.128.7",
+    "pydantic-settings>=2.12.0",
+    "pydantic[email]>=2.12.5",
+    "uvicorn>=0.40.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27.0",
+]

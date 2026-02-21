@@ -1,8 +1,8 @@
-from app.db.protocol import Database
+from app.db.database import Database
 from app.api.models.template import TemplateCreate, Template
 from app.api.models.auth import Token
 from fastapi import Depends
-from app.db.session import get_db_session
+from app.db.session import get_db
 
 class TemplateService:
     def __init__(self, db: Database):
@@ -11,5 +11,5 @@ class TemplateService:
     async def create_template(self, templateIn: TemplateCreate, ownerDetails = Token) -> Template:
         raise NotImplementedError
 
-def get_template_service(db: Database = Depends(get_db_session)) -> TemplateService:
+def get_template_service(db: Database = Depends(get_db)) -> TemplateService:
     return TemplateService(db)
