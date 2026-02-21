@@ -205,9 +205,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-uv.lock
-.agent/
-
 # Node modules (frontend dependencies)
 node_modules/
 **/node_modules/

@@ -2,14 +2,12 @@ import Hero from "@/components/Hero";
 import BentoGrid from "@/components/BentoGrid";
 import FeatureDetails from "@/components/FeatureDetails";
 import CaseStudies from "@/components/ui/CaseStudies";
-import SocialProof from "@/components/SocialProof";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <SocialProof />
       <BentoGrid />
       <FeatureDetails />
       <CaseStudies />
