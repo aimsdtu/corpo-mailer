@@ -41,6 +41,12 @@ export default function TestPage() {
   const [userUuid, setUserUuid] = useState("");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
+  // group fields
+  const [groupName, setGroupName] = useState("");
+  const [groupBio, setGroupBio] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [memberRole, setMemberRole] = useState("user");
 
   useEffect(() => {
     initAuthSync();
@@ -139,7 +145,55 @@ export default function TestPage() {
     log("GET", "/users/count", res);
   };
 
+  /* ---- Groups ---- */
 
+  const handleCreateGroup = async () => {
+    const res = await api.createGroup({
+      name: groupName,
+      bio: groupBio,
+    });
+    log("POST", "/groups", res);
+  };
+
+  const handleListGroups = async () => {
+    const res = await api.listGroups();
+    log("GET", "/groups", res);
+  };
+
+  const handleGetGroup = async () => {
+    const res = await api.getGroup(groupId);
+    log("GET", `/groups/${groupId}`, res);
+  };
+
+  const handleDeleteGroup = async () => {
+    const res = await api.deleteGroup(groupId);
+    log("DELETE", `/groups/${groupId}`, res);
+  };
+
+  const handleAddMember = async () => {
+    const res = await api.addMember(groupId, memberId);
+    log("POST", `/groups/${groupId}/members/${memberId}`, res);
+  };
+
+  const handleRemoveMember = async () => {
+    const res = await api.removeMember(groupId, memberId);
+    log("DELETE", `/groups/${groupId}/members/${memberId}`, res);
+  };
+
+  const handleUpdateMemberRole = async () => {
+    const res = await api.updateMemberRole(groupId, memberId, memberRole);
+    log("PATCH", `/groups/${groupId}/members/${memberId}/role`, res);
+  };
+
+  const handleListMembers = async () => {
+    const res = await api.listMembers(groupId);
+    log("GET", `/groups/${groupId}/members`, res);
+  };
+
+  const handleMyGroups = async () => {
+    const res = await api.myGroups();
+    log("GET", "/groups/me/groups", res);
+  };
 
   /* ================================================================ */
   /*  Render                                                           */
@@ -212,6 +266,91 @@ export default function TestPage() {
           <input className={inputCls} placeholder="New password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
           <button className={btnCls} onClick={handleUpdatePw} disabled={!user}>Update</button>
         </Panel>
+
+        <Panel title="Groups">
+            <input
+              className={inputCls}
+              placeholder="Group name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+            />
+            <input
+              className={inputCls}
+              placeholder="Group bio"
+              value={groupBio}
+              onChange={(e) => setGroupBio(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button className={btnCls} onClick={handleCreateGroup}>
+                Create
+              </button>
+              <button className={btnAltCls} onClick={handleListGroups}>
+                List
+              </button>
+              <button className={btnAltCls} onClick={handleMyGroups}>
+                My Groups
+              </button>
+            </div>
+          </Panel>
+        <Panel title="Groups">
+          <input
+            className={inputCls}
+            placeholder="Group name"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="Group bio"
+            value={groupBio}
+            onChange={(e) => setGroupBio(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnCls} onClick={handleCreateGroup}>
+              Create
+            </button>
+            <button className={btnAltCls} onClick={handleListGroups}>
+              List
+            </button>
+            <button className={btnAltCls} onClick={handleMyGroups}>
+              My Groups
+            </button>
+          </div>
+        </Panel>
+                <Panel title="Group Members">
+          <input
+            className={inputCls}
+            placeholder="Group UUID"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="User UUID"
+            value={memberId}
+            onChange={(e) => setMemberId(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="Role (user | moderator | admin)"
+            value={memberRole}
+            onChange={(e) => setMemberRole(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnAltCls} onClick={handleAddMember}>
+              Add
+            </button>
+            <button className={btnAltCls} onClick={handleRemoveMember}>
+              Remove
+            </button>
+            <button className={btnAltCls} onClick={handleUpdateMemberRole}>
+              Update Role
+            </button>
+            <button className={btnAltCls} onClick={handleListMembers}>
+              List Members
+            </button>
+          </div>
+        </Panel>
       </div>
 
       {/* ---- Response log ---- */}
@@ -238,6 +377,7 @@ export default function TestPage() {
             </details>
           ))}
         </div>
+                  
       </section>
     </div>
   );

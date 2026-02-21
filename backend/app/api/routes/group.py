@@ -1,12 +1,157 @@
-from fastapi import APIRouter, Depends
-from app.api.services.groupservice import GroupService, get_group_service
-from app.api.models.group import Group, GroupCreate
+from uuid import UUID
 
-router = APIRouter()
+from fastapi import APIRouter, Depends, HTTPException, status
 
-@router.post("/", response_model=Group)
+from app.api.dependencies.auth import inject_user, require_role
+from app.api.models.group import (
+    GroupCreate,
+    GroupUpdate,
+    GroupMemberUpdate,
+    GroupResponse,
+    GroupMemberResponse,
+)
+from app.api.services.groupservice import GroupService
+from app.db.database import Database
+from app.db.session import get_db
+
+
+router = APIRouter(prefix="/groups", tags=["groups"])
+
+
+def _get_service(db: Database = Depends(get_db)):
+    return GroupService(db)
+
+
+# ---------------- Groups ----------------
+
+
+@router.post("", response_model=GroupResponse)
+@require_role("admin", "superuser")
 async def create_group(
-    group_in: GroupCreate,
-    service: GroupService = Depends(get_group_service)
+    body: GroupCreate,
+    user=Depends(inject_user),
+    service: GroupService = Depends(_get_service),
 ):
-    return await service.create_group(group_in)
+
+    return await service.create_group(
+        body.name,
+        body.bio,
+        UUID(user["sub"]),
+    )
+
+
+@router.get("/{group_id}", response_model=GroupResponse)
+async def get_group(
+    group_id: UUID,
+    service: GroupService = Depends(_get_service),
+):
+
+    group = await service.get_group(group_id)
+
+    if not group:
+        raise HTTPException(404, "Group not found")
+
+    return group
+
+
+@router.get("", response_model=list[GroupResponse])
+async def list_groups(
+    service: GroupService = Depends(_get_service),
+):
+
+    return await service.list_groups()
+
+
+@router.patch("/{group_id}", response_model=GroupResponse)
+@require_role("admin", "superuser")
+async def update_group(
+    group_id: UUID,
+    body: GroupUpdate,
+    service: GroupService = Depends(_get_service),
+):
+
+    group = await service.edit_group(
+        group_id,
+        body.name,
+        body.bio,
+    )
+
+    if not group:
+        raise HTTPException(404, "Group not found")
+
+    return group
+
+
+@router.delete("/{group_id}", status_code=204)
+@require_role("superuser")
+async def delete_group(
+    group_id: UUID,
+    service: GroupService = Depends(_get_service),
+):
+
+    await service.delete_group(group_id)
+
+
+# ---------------- Members ----------------
+
+
+@router.post("/{group_id}/members/{user_id}")
+@require_role("admin", "superuser")
+async def add_member(
+    group_id: UUID,
+    user_id: UUID,
+    service: GroupService = Depends(_get_service),
+):
+
+    await service.add_member(group_id, user_id)
+
+    return {"status": "added"}
+
+
+@router.delete("/{group_id}/members/{user_id}")
+@require_role("admin", "superuser")
+async def remove_member(
+    group_id: UUID,
+    user_id: UUID,
+    service: GroupService = Depends(_get_service),
+):
+
+    await service.remove_member(group_id, user_id)
+
+    return {"status": "removed"}
+
+
+@router.patch("/{group_id}/members/{user_id}/role")
+@require_role("admin", "superuser")
+async def update_member_role(
+    group_id: UUID,
+    user_id: UUID,
+    body: GroupMemberUpdate,
+    service: GroupService = Depends(_get_service),
+):
+
+    await service.update_member_role(
+        group_id,
+        user_id,
+        body.role,
+    )
+
+    return {"status": "updated"}
+
+
+@router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
+async def list_members(
+    group_id: UUID,
+    service: GroupService = Depends(_get_service),
+):
+
+    return await service.list_members(group_id)
+
+
+@router.get("/me/groups", response_model=list[GroupResponse])
+async def my_groups(
+    user=Depends(inject_user),
+    service: GroupService = Depends(_get_service),
+):
+
+    return await service.get_user_groups(UUID(user["sub"]))
