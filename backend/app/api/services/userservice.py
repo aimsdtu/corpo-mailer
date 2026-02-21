@@ -1,333 +1,224 @@
-import json
-from uuid import UUID, uuid4
-from typing import Optional, Any
-from datetime import datetime
+"""User service — CRUD via SQLAlchemy Core."""
+from __future__ import annotations
 
-from app.api.models.user import (
-    User,
-    UserCreate,
-    UserCreateOAuth,
-    UserUpdate,
-    UserResponse,
-    PasswordUpdate,
-)
-from app.db.protocol import Database
-from app.db.queries.userqueries import get_user_queries
+import hashlib
+import json
+import secrets
+from datetime import datetime, timezone
+from typing import Any
+from uuid import UUID, uuid4
+
+from sqlalchemy import delete, func, insert, select, update
+
+from app.api.models.user import PasswordUpdate, User, UserUpdate, UserResponse
+from app.db.database import Database
+from app.db.tables import users
+
+
+def _hash_pw(plain: str) -> str:
+    salt = secrets.token_hex(16)
+    h = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt.encode(), 600_000)
+    return f"{salt}${h.hex()}"
+
+
+def _verify_pw(plain: str, stored: str) -> bool:
+    salt, h = stored.split("$", 1)
+    return hashlib.pbkdf2_hmac("sha256", plain.encode(), salt.encode(), 600_000).hex() == h
 
 
 class UserService:
-    """Service for managing user operations"""
+    """Core user operations — single source of truth for row → model mapping."""
 
-    def __init__(self, db: Database):
+    def __init__(self, db: Database) -> None:
         self.db = db
-        self.queries = get_user_queries()
 
-    def _build_metadata(
-        self,
-        designation: str,
-        age: int,
-        gender: str,
-        dtu_id_number: str,
-        dtu_email: Optional[str] = None,
-        course_and_year_of_study: Optional[str] = None,
-    ) -> dict[str, Any]:
-        """Build metadata JSON object"""
-        metadata = {
-            "designation": designation,
-            "age": age,
-            "gender": gender,
-            "dtu_id_number": dtu_id_number,
-        }
-        
-        # Add optional fields to metadata
-        if dtu_email:
-            metadata["dtu_email"] = dtu_email
-        if course_and_year_of_study:
-            metadata["course_and_year_of_study"] = course_and_year_of_study
-            
-        return metadata
+    # ── helpers ────────────────────────────────────────────────────────────
 
-    def _row_to_user(self, row: dict[str, Any]) -> Optional[User]:
-        """Convert database row to User model"""
+    @staticmethod
+    def _row_to_user(row: dict[str, Any] | None) -> User | None:
         if not row:
             return None
-
-        metadata = row.get("metadata")
-        if isinstance(metadata, str):
-            metadata = json.loads(metadata)
-        
+        meta = row.get("metadata")
+        if isinstance(meta, str):
+            meta = json.loads(meta)
         return User(
-            uuid=UUID(row["uuid"]) if isinstance(row["uuid"], str) else row["uuid"],
+            uuid=row["uuid"] if isinstance(row["uuid"], UUID) else UUID(str(row["uuid"])),
             registered_email=row["registered_email"],
             name=row["name"],
             hash=row.get("hash"),
-            token=row.get("token"),
             pfp=row.get("pfp"),
-            email_provider=row.get("email_provider", "custom"),
             access_level=row.get("access_level", "user"),
-            metadata=metadata or {},
-            created_at=row.get("created_at"),
-            updated_at=row.get("updated_at"),
+            metadata=meta or {},
             oauth_provider=row.get("oauth_provider"),
             oauth_id=row.get("oauth_id"),
+            email_verified=row.get("email_verified", False),
+            is_active=row.get("is_active", True),
+            last_login_at=row.get("last_login_at"),
+            created_at=row.get("created_at"),
+            updated_at=row.get("updated_at"),
         )
 
-    async def create_user(self, user_create: UserCreate) -> User:
-        """Create a new user with normal authentication"""
-        user_uuid = uuid4()
-
-        metadata = self._build_metadata(
-            designation=user_create.designation,
-            age=user_create.age,
-            gender=user_create.gender,
-            dtu_id_number=user_create.dtu_id_number,
-            dtu_email=user_create.dtu_email,
-            course_and_year_of_study=user_create.course_and_year_of_study,
+    @staticmethod
+    def to_response(user: User) -> UserResponse:
+        return UserResponse(
+            uuid=user.uuid,
+            registered_email=user.registered_email,
+            name=user.name,
+            pfp=user.pfp,
+            access_level=user.access_level,
+            metadata=user.metadata,
+            oauth_provider=user.oauth_provider,
+            email_verified=user.email_verified,
+            is_active=user.is_active,
+            last_login_at=user.last_login_at,
+            created_at=user.created_at,
         )
 
-        params = {
-            "uuid": str(user_uuid),
-            "registered_email": user_create.registered_email,
-            "name": user_create.name,
-            "hash": user_create.hashed_password,
-            "pfp": user_create.pfp,
-            "email_provider": user_create.email_provider,
-            "access_level": user_create.access_level,
-            "metadata": json.dumps(metadata),
-            "oauth_provider": None,  # ✅ ADD THIS
-            "oauth_id": None,        # ✅ ADD THIS
-        }
+    # ── create ─────────────────────────────────────────────────────────────
 
-        row = await self.db.fetch_one(self.queries.CREATE_USER, params)
-        return self._row_to_user(row)
+    async def admin_create_user(
+        self, email: str, name: str, password: str, access_level: str = "user",
+    ) -> UserResponse:
+        """Admin creation — checks existence, hashes password, returns response."""
+        existing = await self.get_by_email(email)
+        if existing:
+            raise ValueError("Email already registered")
+        user = await self.create_user(email, name, _hash_pw(password), access_level)
+        return self.to_response(user)
 
-    async def create_user_oauth(self, user_create_oauth: UserCreateOAuth) -> User:
-        """Create a new user with OAuth authentication"""
-        user_uuid = uuid4()
-
-        metadata = self._build_metadata(
-            designation=user_create_oauth.designation,
-            age=user_create_oauth.age,
-            gender=user_create_oauth.gender,
-            dtu_id_number=user_create_oauth.dtu_id_number,
-            dtu_email=user_create_oauth.dtu_email,
-            course_and_year_of_study=user_create_oauth.course_and_year_of_study,
+    async def create_user(
+        self, email: str, name: str, hashed_password: str, access_level: str = "user",
+    ) -> User:
+        stmt = (
+            insert(users)
+            .values(
+                uuid=uuid4(), registered_email=email, name=name,
+                hash=hashed_password, access_level=access_level,
+                metadata={}, email_verified=False,
+            )
+            .returning(users)
         )
-
-        params = {
-            "uuid": str(user_uuid),
-            "registered_email": user_create_oauth.registered_email,
-            "name": user_create_oauth.name,
-            "pfp": user_create_oauth.pfp,
-            "email_provider": user_create_oauth.email_provider,
-            "access_level": user_create_oauth.access_level,
-            "metadata": json.dumps(metadata),
-            "oauth_provider": user_create_oauth.oauth_provider,
-            "oauth_id": user_create_oauth.oauth_id,
-        }
-
-        row = await self.db.fetch_one(self.queries.CREATE_USER_OAUTH, params)
+        row = await self.db.fetch_one(stmt)
         return self._row_to_user(row)
 
-    async def get_user_by_uuid(self, uuid: UUID) -> Optional[User]:
-        """Retrieve a user by UUID"""
-        row = await self.db.fetch_one(self.queries.GET_USER_BY_UUID, {"uuid": str(uuid)})
+    async def create_user_oauth(
+        self, email: str, name: str, oauth_provider: str, oauth_id: str,
+        pfp: str | None = None, email_verified: bool = False,
+    ) -> User:
+        stmt = (
+            insert(users)
+            .values(
+                uuid=uuid4(), registered_email=email, name=name, pfp=pfp,
+                access_level="user", metadata={},
+                oauth_provider=oauth_provider, oauth_id=oauth_id,
+                email_verified=email_verified,
+            )
+            .returning(users)
+        )
+        row = await self.db.fetch_one(stmt)
         return self._row_to_user(row)
 
-    async def get_user_by_email(self, email: str) -> Optional[User]:
-        """Retrieve a user by registered email"""
-        row = await self.db.fetch_one(self.queries.GET_USER_BY_EMAIL, {"email": email})
-        return self._row_to_user(row)
+    # ── read ───────────────────────────────────────────────────────────────
 
-    async def get_user_by_dtu_id(self, dtu_id: str) -> Optional[User]:
-        """Retrieve a user by DTU ID number (from metadata)"""
-        row = await self.db.fetch_one(self.queries.GET_USER_BY_DTU_ID, {"dtu_id": dtu_id})
-        return self._row_to_user(row)
+    async def get_by_uuid(self, uuid: UUID) -> User | None:
+        stmt = select(users).where(users.c.uuid == uuid)
+        return self._row_to_user(await self.db.fetch_one(stmt))
 
-    async def update_user(self, uuid: UUID, user_update: UserUpdate) -> Optional[User]:
-        """Update user information"""
-        # Get current user to merge metadata
-        current_user = await self.get_user_by_uuid(uuid)
-        if not current_user:
-            return None
+    async def get_by_email(self, email: str) -> User | None:
+        stmt = select(users).where(users.c.registered_email == email)
+        return self._row_to_user(await self.db.fetch_one(stmt))
 
-        # Build metadata updates
-        metadata_updates = {}
-        if user_update.designation:
-            metadata_updates["designation"] = user_update.designation
-        if user_update.age:
-            metadata_updates["age"] = user_update.age
-        if user_update.gender:
-            metadata_updates["gender"] = user_update.gender
-        if user_update.dtu_id_number:
-            metadata_updates["dtu_id_number"] = user_update.dtu_id_number
-        if user_update.dtu_email:
-            metadata_updates["dtu_email"] = user_update.dtu_email
-        if user_update.course_and_year_of_study:
-            metadata_updates["course_and_year_of_study"] = user_update.course_and_year_of_study
+    async def get_by_oauth(self, provider: str, oauth_id: str) -> User | None:
+        stmt = select(users).where(
+            users.c.oauth_provider == provider, users.c.oauth_id == oauth_id,
+        )
+        return self._row_to_user(await self.db.fetch_one(stmt))
 
-        merged_metadata = {**current_user.metadata, **metadata_updates}
+    async def list_users(
+        self, designation: str | None = None, access_level: str | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> list[User]:
+        stmt = select(users).order_by(users.c.created_at.desc())
+        if designation:
+            stmt = stmt.where(users.c.metadata["designation"].astext == designation)
+        if access_level:
+            stmt = stmt.where(users.c.access_level == access_level)
+        stmt = stmt.limit(limit).offset(offset)
+        rows = await self.db.fetch_all(stmt)
+        return [self._row_to_user(r) for r in rows]
 
-        # Build dynamic update query
-        updates = []
-        params = {"uuid": str(uuid)}
+    async def count_users(
+        self, designation: str | None = None, access_level: str | None = None,
+    ) -> int:
+        stmt = select(func.count().label("count")).select_from(users)
+        if designation:
+            stmt = stmt.where(users.c.metadata["designation"].astext == designation)
+        if access_level:
+            stmt = stmt.where(users.c.access_level == access_level)
+        row = await self.db.fetch_one(stmt)
+        return row["count"] if row else 0
 
-        if user_update.name:
-            updates.append("name = :name")
-            params["name"] = user_update.name
-        if user_update.pfp:
-            updates.append("pfp = :pfp")
-            params["pfp"] = user_update.pfp
-        if user_update.access_level:
-            updates.append("access_level = :access_level")
-            params["access_level"] = user_update.access_level
+    # ── update ─────────────────────────────────────────────────────────────
 
-        if metadata_updates:
-            updates.append("metadata = :metadata")
-            params["metadata"] = json.dumps(merged_metadata)
+    async def update_user(self, uuid: UUID, data: UserUpdate) -> User | None:
+        fields: dict[str, Any] = {}
+        if data.name is not None:
+            fields["name"] = data.name
+        if data.pfp is not None:
+            fields["pfp"] = data.pfp
+        if data.access_level is not None:
+            fields["access_level"] = data.access_level
+        if data.metadata is not None:
+            fields["metadata"] = data.metadata
+        if data.email_verified is not None:
+            fields["email_verified"] = data.email_verified
+        if data.is_active is not None:
+            fields["is_active"] = data.is_active
+        if not fields:
+            return await self.get_by_uuid(uuid)
+        stmt = update(users).where(users.c.uuid == uuid).values(**fields).returning(users)
+        return self._row_to_user(await self.db.fetch_one(stmt))
 
-        if not updates:
-            return current_user
-
-        params["updated_at"] = datetime.utcnow()
-        query = self.queries.build_update_query(updates)
-        row = await self.db.fetch_one(query, params)
-        return self._row_to_user(row)
-
-    async def update_password(self, uuid: UUID, password_update: PasswordUpdate) -> bool:
-        """Update user password (only for non-OAuth users)"""
-        # First verify the user exists and is not OAuth user
-        current_user = await self.get_user_by_uuid(uuid)
-        if not current_user:
+    async def update_password(self, uuid: UUID, pw: PasswordUpdate) -> bool:
+        user = await self.get_by_uuid(uuid)
+        if not user:
             return False
-        
-        if current_user.oauth_provider:
-            raise ValueError("Cannot update password for OAuth users")
-        
-        # Verify old password matches
-        if current_user.hash != password_update.old_hashed_password:
+        if user.oauth_provider and not user.hash:
+            raise ValueError("Cannot update password for OAuth-only users")
+        if not _verify_pw(pw.old_password, user.hash):
             raise ValueError("Incorrect current password")
-
-        params = {
-            "uuid": str(uuid),
-            "new_hash": password_update.new_hashed_password,
-            "old_hash": password_update.old_hashed_password,
-            "updated_at": datetime.utcnow(),
-        }
-
-        result = await self.db.fetch_one(self.queries.UPDATE_PASSWORD, params)
-        return result is not None
-
-    async def set_user_token(self, uuid: UUID, token: str) -> Optional[User]:
-        """Set JWT token for user"""
-        params = {
-            "uuid": str(uuid),
-            "token": token,
-            "updated_at": datetime.utcnow(),
-        }
-
-        row = await self.db.fetch_one(self.queries.SET_USER_TOKEN, params)
-        return self._row_to_user(row)
-
-    async def regenerate_token(self, uuid: UUID) -> Optional[str]:
-        """Regenerate authentication token for user"""
-        import secrets
-        new_token = secrets.token_urlsafe(32)
-        
-        params = {
-            "uuid": str(uuid),
-            "token": new_token,
-            "updated_at": datetime.utcnow(),
-        }
-
-        row = await self.db.fetch_one(self.queries.SET_USER_TOKEN, params)
-        return row.get("token") if row else None
-
-    async def get_all_users(self) -> list[User]:
-        """Get all users"""
-        rows = await self.db.fetch_all(self.queries.GET_ALL_USERS)
-        return [self._row_to_user(row) for row in rows]
-
-    async def get_users_by_designation(self, designation: str) -> list[User]:
-        """Get users filtered by designation (from metadata)"""
-        rows = await self.db.fetch_all(
-            self.queries.GET_USERS_BY_DESIGNATION, 
-            {"designation": designation}
+        if pw.new_password != pw.confirm_password:
+            raise ValueError("Passwords do not match")
+        if pw.new_password == pw.old_password:
+            raise ValueError("New password cannot be same as old password")
+        stmt = (
+            update(users).where(users.c.uuid == uuid)
+            .values(hash=_hash_pw(pw.new_password))
+            .returning(users)
         )
-        return [self._row_to_user(row) for row in rows]
+        return (await self.db.fetch_one(stmt)) is not None
 
-    async def get_users_by_access_level(self, access_level: str) -> list[User]:
-        """Get users filtered by access level"""
-        rows = await self.db.fetch_all(
-            self.queries.GET_USERS_BY_ACCESS_LEVEL, 
-            {"access_level": access_level}
+    async def link_oauth(
+        self, uuid: UUID, provider: str, oauth_id: str, pfp: str | None = None,
+    ) -> User:
+        stmt = (
+            update(users).where(users.c.uuid == uuid)
+            .values(
+                oauth_provider=provider, oauth_id=oauth_id,
+                pfp=func.coalesce(users.c.pfp, pfp), email_verified=True,
+            )
+            .returning(users)
         )
-        return [self._row_to_user(row) for row in rows]
-    
-    async def get_students_by_course_year(self, course: str, year: str) -> list[User]:
-        """Get students by course and year (from metadata)"""
-        pattern = f"%{course}%{year}%"
-        rows = await self.db.fetch_all(
-            self.queries.GET_STUDENTS_BY_COURSE_YEAR,
-            {"course_year_pattern": pattern}
+        return self._row_to_user(await self.db.fetch_one(stmt))
+
+    async def update_last_login(self, uuid: UUID) -> None:
+        stmt = update(users).where(users.c.uuid == uuid).values(
+            last_login_at=datetime.now(timezone.utc),
         )
-        return [self._row_to_user(row) for row in rows]
+        await self.db.execute(stmt)
 
-    async def user_exists(self, email: str) -> bool:
-        """Check if user exists by email"""
-        result = await self.db.fetch_one(self.queries.USER_EXISTS, {"email": email})
-        return result is not None
-
-    async def check_dtu_id_exists(self, dtu_id: str) -> bool:
-        """Check if DTU ID already exists (from metadata)"""
-        result = await self.db.fetch_one(
-            self.queries.CHECK_DTU_ID_EXISTS, 
-            {"dtu_id": dtu_id}
-        )
-        return result.get("count", 0) > 0 if result else False
-
-    async def update_profile_picture(self, uuid: UUID, pfp_url: str) -> Optional[User]:
-        """Update user profile picture"""
-        params = {
-            "uuid": str(uuid),
-            "pfp": pfp_url,
-            "updated_at": datetime.utcnow(),
-        }
-
-        row = await self.db.fetch_one(self.queries.UPDATE_PROFILE_PICTURE, params)
-        return self._row_to_user(row)
-
-    async def update_metadata(self, uuid: UUID, metadata_updates: dict[str, Any]) -> Optional[User]:
-        """Update specific metadata fields"""
-        current_user = await self.get_user_by_uuid(uuid)
-        if not current_user:
-            return None
-        
-        merged_metadata = {**current_user.metadata, **metadata_updates}
-        
-        params = {
-            "uuid": str(uuid),
-            "metadata": json.dumps(merged_metadata),
-            "updated_at": datetime.utcnow(),
-        }
-
-        row = await self.db.fetch_one(self.queries.UPDATE_METADATA, params)
-        return self._row_to_user(row)
-
-    async def count_users(self) -> int:
-        """Get total count of users"""
-        result = await self.db.fetch_one(self.queries.COUNT_ALL_USERS)
-        return result.get("count", 0) if result else 0
-
-    async def count_users_by_designation(self, designation: str) -> int:
-        """Get count of users by designation"""
-        result = await self.db.fetch_one(
-            self.queries.COUNT_USERS_BY_DESIGNATION,
-            {"designation": designation}
-        )
-        return result.get("count", 0) if result else 0
+    # ── delete ─────────────────────────────────────────────────────────────
 
     async def delete_user(self, uuid: UUID) -> bool:
-        """Hard delete a user"""
-        result = await self.db.fetch_one(self.queries.DELETE_USER, {"uuid": str(uuid)})
-        return result is not None
+        stmt = delete(users).where(users.c.uuid == uuid).returning(users.c.uuid)
+        return (await self.db.fetch_one(stmt)) is not None

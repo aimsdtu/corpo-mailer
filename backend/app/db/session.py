@@ -1,14 +1,16 @@
-"""Database session management"""
-import os
+"""Per-request Database dependency for FastAPI."""
+from __future__ import annotations
+
 from typing import AsyncGenerator
-from app.db.protocol import Database
-from app.db.supabase import SupabaseDatabase
-from app.core.config import get_settings
-from functools import lru_cache
 
-settings = get_settings()
+from app.db.database import Database
+from app.db.engine import get_engine
 
-@lru_cache()
-async def get_database() -> Database:
-    """Initialize and return the database instance"""
-    return SupabaseDatabase(connection_string=settings.supabase_url)
+
+async def get_db() -> AsyncGenerator[Database, None]:
+    """Yield a Database wrapping a transactional connection.
+
+    Auto-commits on clean exit, rolls back on exception.
+    """
+    async with get_engine().begin() as conn:
+        yield Database(conn)

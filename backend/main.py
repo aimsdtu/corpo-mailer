@@ -1,27 +1,44 @@
 """FastAPI application entry point"""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.db.session import get_database, close_database
+from app.db.engine import init_db, close_db
 from app.api.main import router as api_router
+from app.core.config import get_settings
+from app.core.logging import logger, setup_logging
+import uvicorn
+
+settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifespan"""
-    # Startup
-    print("🚀 Starting application...")
-    await get_database()
+    """Manage application lifespan — pool + schema init on startup, teardown on shutdown."""
+    setup_logging()
+    logger.info("Starting application…")
+    await init_db()
     yield
+    logger.info("Shutting down…")
+    await close_db()
 
 
 app = FastAPI(
     title="DTU Mailing Service API",
     description="API for DTU automated mailing service",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
-# Include API routes
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_origin],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Routers
 app.include_router(api_router)
 
 
@@ -32,5 +49,4 @@ async def root():
 
 
 if __name__ == "__main__":
-    
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
