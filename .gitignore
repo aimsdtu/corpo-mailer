@@ -207,3 +207,7 @@ __marimo__/
 
 uv.lock
 .agent/
+
+# Node modules (frontend dependencies)
+node_modules/
+**/node_modules/
