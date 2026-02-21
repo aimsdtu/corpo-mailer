@@ -18,11 +18,17 @@ from app.db.session import get_db
 router = APIRouter(prefix="/groups", tags=["groups"])
 
 
-def _get_service(db: Database = Depends(get_db)):
+# -------------------------------------------------------------------
+# Dependency
+# -------------------------------------------------------------------
+
+def _get_service(db: Database = Depends(get_db)) -> GroupService:
     return GroupService(db)
 
 
-# ---------------- Groups ----------------
+# -------------------------------------------------------------------
+# Groups
+# -------------------------------------------------------------------
 
 
 @router.post("", response_model=GroupResponse)
@@ -32,7 +38,6 @@ async def create_group(
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     return await service.create_group(
         body.name,
         body.bio,
@@ -45,11 +50,13 @@ async def get_group(
     group_id: UUID,
     service: GroupService = Depends(_get_service),
 ):
-
     group = await service.get_group(group_id)
 
     if not group:
-        raise HTTPException(404, "Group not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found",
+        )
 
     return group
 
@@ -58,7 +65,6 @@ async def get_group(
 async def list_groups(
     service: GroupService = Depends(_get_service),
 ):
-
     return await service.list_groups()
 
 
@@ -67,9 +73,9 @@ async def list_groups(
 async def update_group(
     group_id: UUID,
     body: GroupUpdate,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     group = await service.edit_group(
         group_id,
         body.name,
@@ -77,22 +83,27 @@ async def update_group(
     )
 
     if not group:
-        raise HTTPException(404, "Group not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found",
+        )
 
     return group
 
 
-@router.delete("/{group_id}", status_code=204)
+@router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 @require_role("superuser")
 async def delete_group(
     group_id: UUID,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     await service.delete_group(group_id)
 
 
-# ---------------- Members ----------------
+# -------------------------------------------------------------------
+# Members
+# -------------------------------------------------------------------
 
 
 @router.post("/{group_id}/members/{user_id}")
@@ -100,9 +111,9 @@ async def delete_group(
 async def add_member(
     group_id: UUID,
     user_id: UUID,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     await service.add_member(group_id, user_id)
 
     return {"status": "added"}
@@ -113,9 +124,9 @@ async def add_member(
 async def remove_member(
     group_id: UUID,
     user_id: UUID,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     await service.remove_member(group_id, user_id)
 
     return {"status": "removed"}
@@ -127,9 +138,9 @@ async def update_member_role(
     group_id: UUID,
     user_id: UUID,
     body: GroupMemberUpdate,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     await service.update_member_role(
         group_id,
         user_id,
@@ -140,12 +151,18 @@ async def update_member_role(
 
 
 @router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
+@require_role("admin", "superuser")
 async def list_members(
     group_id: UUID,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
     return await service.list_members(group_id)
+
+
+# -------------------------------------------------------------------
+# My Groups
+# -------------------------------------------------------------------
 
 
 @router.get("/me/groups", response_model=list[GroupResponse])
@@ -153,5 +170,6 @@ async def my_groups(
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-
-    return await service.get_user_groups(UUID(user["sub"]))
+    return await service.get_user_groups(
+        UUID(user["sub"])
+    )
