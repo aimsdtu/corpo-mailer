@@ -103,46 +103,46 @@ const caseStudies: CaseStudy[] = [
   {
     id: 1,
     quote:
-      "With CorpoMailer, our SDRs finally work in sync. Templates are shared, consistent, and we launch new campaigns 40% faster.",
-    name: "Aarav Mehta",
-    role: "Lead SDR",
+      "CorpoMailer completely changed how we reach out to companies. What used to take our coordinators days of manual emailing now happens in one click — and every email feels personal.",
+    name: "Taher Merchant",
+    role: "AIMS DTU · Lead Developer & Tester",
     image:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1000&fit=crop",
     icon: Monitor,
     metrics: [
-      { value: "40%", label: "Faster Launch", sub: "Campaign shipping speed" },
-      { value: "95%", label: "Rep Satisfaction", sub: "Based on internal survey" },
+      { value: "500+", label: "Companies Reached", sub: "Per placement campaign" },
+      { value: "90%", label: "Time Saved", sub: "vs. manual email workflows" },
     ],
   },
   {
     id: 2,
     quote:
-      "CorpoMailer gave us a unified approval dashboard. Our ops team reduced risk and improved compliance across all outbound.",
-    name: "Sophia Patel",
-    role: "Campaign Ops Manager",
+      "The group and template sharing feature is a game-changer. Our entire T&P team works from the same templates now — consistent, professional, and fast.",
+    name: "AIMS DTU Members",
+    role: "Training & Placement Cell · DTU",
     image:
       "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop",
     icon: LayoutDashboard,
     metrics: [
-      { value: "3.5x", label: "Efficiency Gain", sub: "Across workflows" },
-      { value: "70%", label: "Reduced Errors", sub: "In compliance reporting" },
+      { value: "3x", label: "Faster Campaigns", sub: "End-to-end launch speed" },
+      { value: "100%", label: "Admin Oversight", sub: "Every email reviewed before send" },
     ],
   },
   {
     id: 3,
     quote:
-      "The agentic features in CorpoMailer changed the way we scale. Everything is automated, and lead quality is higher.",
-    name: "David Liu",
-    role: "VP of Growth",
+      "Having an admin approval workflow means no more accidental or unprofessional emails going out. The T&P Cell reputation stays intact every placement season.",
+    name: "AIMS DTU Core Team",
+    role: "Association for Info. & Mgmt. Sciences · DTU",
     image:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1000&fit=crop",
     icon: Users,
     metrics: [
-      { value: "2x", label: "Lead Quality", sub: "Qualified pipeline" },
+      { value: "0", label: "Mistaken Sends", sub: "Thanks to approval workflow" },
       {
-        value: "88%",
-        label: "Response Rate Boost",
-        sub: "Teamwide adoption",
+        value: "500",
+        label: "Max Recipients",
+        sub: "Per single campaign in one click",
       },
     ],
   },
@@ -158,11 +158,12 @@ const CaseStudies: React.FC = () => {
             id="case-studies-heading"
             className="text-4xl font-semibold md:text-5xl text-gray-900 tracking-tight"
           >
-            Real results with Agents
+            Built &amp; tested at DTU
           </h2>
           <p className="text-gray-500 text-lg">
-            From automated research to strict governance—CorpoMailer powers
-            teams with speed, clarity, and consistency.
+            CorpoMailer was created and validated by members of AIMS DTU to
+            streamline the Training &amp; Placement Cell&apos;s outreach — and
+            it&apos;s already making a difference.
           </p>
         </div>
 

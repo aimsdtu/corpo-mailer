@@ -21,16 +21,16 @@ const FeatureDetails: React.FC = () => {
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 text-indigo-600 font-semibold mb-6 bg-indigo-50 px-3 py-1 rounded-full text-sm">
               <ShieldCheck size={16} />
-              <span>Governance & Control</span>
+              <span>T&P Workflow Automation</span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              Sleep soundly with Admin Approval Workflows.
+              Automate the T&amp;P Cell&apos;s entire placement outreach.
             </h2>
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              Enable your agents and team members to draft campaigns without the
-              risk of accidental sends. Admins receive a unified dashboard to
-              review, edit, comment, and approve every single email before
-              it&apos;s scheduled.
+              CorpoMailer was built specifically for DTU&apos;s Training &amp;
+              Placement Cell. Coordinators upload company lists, craft
+              campaigns, and send to 500+ companies — with an admin approval
+              gate at every step. No more manual copy-pasting.
             </p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
@@ -39,10 +39,11 @@ const FeatureDetails: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">
-                    Role-based Permissions
+                    Coordinator Roles
                   </h4>
                   <p className="text-gray-500 text-sm">
-                    Define who can draft, who can edit, and who can approve.
+                    Assign drafting, editing, and approval rights to different
+                    T&P team members.
                   </p>
                 </div>
               </li>
@@ -52,11 +53,11 @@ const FeatureDetails: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">
-                    Content Guardrails
+                    Admin Approval Gate
                   </h4>
                   <p className="text-gray-500 text-sm">
-                    Automatically flag keywords or tone issues before admin
-                    review.
+                    Nothing is sent without admin sign-off — your reputation
+                    stays protected at every send.
                   </p>
                 </div>
               </li>
@@ -68,7 +69,7 @@ const FeatureDetails: React.FC = () => {
               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
                 <div>
                   <h3 className="font-bold text-gray-900">Review Queue</h3>
-                  <p className="text-sm text-gray-500">3 Campaigns Pending</p>
+                  <p className="text-sm text-gray-500">3 Campaigns Pending Approval</p>
                 </div>
                 <button className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium">
                   Bulk Action
@@ -77,9 +78,9 @@ const FeatureDetails: React.FC = () => {
               <div className="space-y-4">
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-sm">Investor Update Q3</p>
+                    <p className="font-semibold text-sm">Internship Drive 2025 — Batch A</p>
                     <p className="text-xs text-gray-500">
-                      Drafted by: AI Agent 01 • 450 Recipients
+                      Drafted by: Taher M. • 500 Recipients
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -94,10 +95,10 @@ const FeatureDetails: React.FC = () => {
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between opacity-60">
                   <div>
                     <p className="font-semibold text-sm">
-                      Cold Outreach: SaaS Founders
+                      Placement Season — Core Companies
                     </p>
                     <p className="text-xs text-gray-500">
-                      Drafted by: Mike T. • 120 Recipients
+                      Drafted by: Coordinator • 45 Recipients
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -118,18 +119,19 @@ const FeatureDetails: React.FC = () => {
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 text-blue-600 font-semibold mb-6 bg-blue-50 px-3 py-1 rounded-full text-sm">
               <Bot size={16} />
-              <span>Agentic Workflow</span>
+              <span>Group &amp; Template Management</span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              Hire AI Agents, not just lists.
+              Create groups. Share templates. Mail at scale.
             </h2>
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              Define your ideal customer profile and let our autonomous agents
-              scour the web. They verify emails, analyze company news, and
-              identify trigger events to craft messages that actually get read.
+              Organise companies into named groups, build polished templates
+              once, and share them across all coordinators. Launch the same
+              campaign to 500+ companies in a single click — with every email
+              addressed to the right person.
             </p>
             <button className="text-blue-600 font-semibold flex items-center gap-2 hover:gap-4 transition-all">
-              Configure your agent <span className="text-xl">→</span>
+              Create your first group <span className="text-xl">→</span>
             </button>
           </div>
 
@@ -140,7 +142,7 @@ const FeatureDetails: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   <span className="text-gray-200 font-medium">
-                    Agent-X (Research Mode)
+                    Agent-X (Campaign Mode)
                   </span>
                 </div>
                 <span className="text-xs text-gray-500">Live Feed</span>
@@ -156,12 +158,12 @@ const FeatureDetails: React.FC = () => {
                     <p className="text-gray-300">
                       Searching for{" "}
                       <span className="text-blue-300">
-                        &quot;Series A Fintech Founders&quot;
+                        &quot;Placement Season 2025 — Core Companies&quot;
                       </span>{" "}
-                      in New York.
+                      in contacts.
                     </p>
                     <p className="text-xs text-gray-500">
-                      Source: Crunchbase, LinkedIn, News API
+                      Source: CSV Upload, Contact Groups
                     </p>
                   </div>
                 </div>
@@ -172,13 +174,13 @@ const FeatureDetails: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-gray-300">
-                      Identified Lead:{" "}
-                      <span className="text-white font-bold">Sarah Chen</span>{" "}
-                      (CEO at PayFlow)
+                      Identified Company:{" "}
+                      <span className="text-white font-bold">Infosys Ltd.</span>{" "}
+                      (Placement Contact: Rahul S.)
                     </p>
                     <div className="bg-gray-800 p-2 rounded border border-gray-700 text-xs text-gray-400 mt-1">
-                      <span className="text-green-400">✓</span> Recent News:
-                      PayFlow raises $12M Series A
+                      <span className="text-green-400">✓</span> Email verified:
+                      campus.placements@infosys.com
                     </div>
                   </div>
                 </div>
@@ -189,13 +191,12 @@ const FeatureDetails: React.FC = () => {
                   </div>
                   <div className="space-y-2 w-full">
                     <p className="text-gray-300">
-                      Drafting personalized hook...
+                      Drafting personalised email...
                     </p>
                     <div className="bg-gray-800/50 p-3 rounded border-l-2 border-yellow-500 text-gray-400 italic text-xs">
-                      &quot;Hi Sarah, saw the news about the $12M raise for
-                      PayFlow—congrats on the Series A! Loved your point in the
-                      TechCrunch interview about...&quot;
-                    </div>
+                      &quot;Dear Rahul, we are pleased to invite Infosys Ltd.
+                      to DTU&apos;s Placement Season 2025. We have a strong
+                      pool of candidates in Computer Science and..&quot;</div>
                   </div>
                 </div>
               </div>

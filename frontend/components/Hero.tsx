@@ -6,10 +6,10 @@ import { ArrowRight, Check, Users, ShieldCheck, Bot } from "lucide-react";
 import { Globe } from "@/components/ui/globe";
 
 const trustBadges = [
-  { icon: Check, label: "Bulk CSV Sending" },
-  { icon: Bot, label: "Autonomous Agents" },
-  { icon: Users, label: "Admin & User Roles" },
-  { icon: ShieldCheck, label: "Human-in-the-loop" },
+  { icon: Check, label: "Bulk Mail 500+ Companies" },
+  { icon: Bot, label: "Group & Template Sharing" },
+  { icon: Users, label: "T&P Coordinator Roles" },
+  { icon: ShieldCheck, label: "Admin Approval Workflow" },
 ];
 
 const avatarUrls = [
@@ -27,20 +27,21 @@ const Hero: React.FC = () => {
           <div className="max-w-4xl z-20 relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-800 mb-8 hover:bg-gray-200 transition-colors cursor-pointer">
               <span className="flex h-2 w-2 rounded-full bg-green-500" />
-              New: Autonomous Research Agents
+              Built for DTU's Training & Placement Cell
               <ArrowRight size={12} />
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 leading-[1.1] mb-8">
-              Agentic outreach{" "}
+              Corporate outreach,{" "}
               <br className="hidden sm:block" />
-              <span className="text-gray-500">for modern teams.</span>
+              <span className="text-gray-500">fully automated.</span>
             </h1>
 
             <p className="text-xl text-gray-600 mb-10 max-w-2xl leading-relaxed">
-              Use AI agents to find leads, research prospects, and draft
-              hyper-personalized emails. Built-in approval workflows ensure you
-              maintain full control over your digital workforce.
+              CorpoMailer is the email automation platform built for DTU&apos;s
+              Training &amp; Placement Cell. Send personalized emails to 500+
+              companies in one click, manage groups, share templates, and keep
+              admins in control of every send.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-16">
@@ -54,7 +55,7 @@ const Hero: React.FC = () => {
                   href="/signup"
                   className="absolute right-2 top-2 bottom-2 bg-black text-white px-6 rounded-full font-medium hover:bg-gray-800 transition-transform active:scale-95 flex items-center"
                 >
-                  Use Agents
+                  Get Started
                 </Link>
               </div>
               <div className="flex items-center gap-2 px-4 py-2">
@@ -69,7 +70,7 @@ const Hero: React.FC = () => {
                   ))}
                 </div>
                 <span className="text-sm font-medium text-gray-600">
-                  Join 10,000+ teams
+                  Tested by AIMS DTU members
                 </span>
               </div>
             </div>

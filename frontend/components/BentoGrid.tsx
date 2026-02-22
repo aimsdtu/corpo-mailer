@@ -45,10 +45,10 @@ const BentoCard: React.FC<BentoCardProps> = ({
 );
 
 const agentSteps = [
-  { text: "Scanning YC W24 batch...", color: "text-blue-400" },
-  { text: "Found 12 matches for 'SaaS'", color: "text-green-400" },
-  { text: "Analyzing LinkedIn profiles...", color: "text-purple-400" },
-  { text: "Drafting personalized intros...", color: "text-gray-400" },
+  { text: "Loading company CSV — 500 entries...", color: "text-blue-400" },
+  { text: "Mapped: Name, Email, Role fields", color: "text-green-400" },
+  { text: "Personalizing templates per company...", color: "text-purple-400" },
+  { text: "Awaiting admin approval before send...", color: "text-gray-400" },
 ];
 
 const BentoGrid: React.FC = () => {
@@ -57,26 +57,27 @@ const BentoGrid: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-16 max-w-3xl">
           <h2 className="text-4xl font-bold text-gray-900 mb-6 tracking-tight">
-            Everything you need to <br />
+            Everything the T&P Cell needs <br />
             <span className="text-gray-500">
-              automate corporate outreach.
+              to automate placement outreach.
             </span>
           </h2>
           <p className="text-lg text-gray-600">
-            CorpoMailer provides the agentic infrastructure for safe,
-            personalized, and high-volume email campaigns. Combine AI autonomy
-            with human oversight.
+            CorpoMailer gives DTU&apos;s Training &amp; Placement Cell the
+            tools to send, manage, and track corporate emails at scale — with
+            group management, shared templates, and admin oversight built in.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
           {/* Large Card 1 - Approval Workflow */}
           <BentoCard
-            title="Human-in-the-Loop"
+            title="Admin Approval Workflow"
             description={
               <span className="block md:max-w-[50%]">
-                Strict governance. Agents draft campaigns, Humans review them.
-                Edit, reject, or approve AI-generated emails before they send.
+                Coordinators draft campaigns and admins review them before
+                anything is sent. Edit, reject, or approve every email with
+                full control.
               </span>
             }
             icon={<ShieldAlert size={20} />}
@@ -113,7 +114,7 @@ const BentoGrid: React.FC = () => {
           {/* Card 2 - CSV */}
           <BentoCard
             title="Bulk CSV Import"
-            description="Upload a CSV with up to 500 contacts. Auto-map columns for Agents to use as context."
+            description="Upload your company contact list — up to 500 entries. CorpoMailer auto-maps fields and personalizes every email automatically."
             icon={<FileSpreadsheet size={20} />}
             className="bg-white"
           />
@@ -126,10 +127,10 @@ const BentoGrid: React.FC = () => {
                   <Bot size={20} />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Autonomous Research
+                  Groups &amp; Shared Templates
                 </h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  {"Don't just buy lists. Deploy agents to scout LinkedIn, News, and Company pages to find the perfect leads automatically."}
+                  {"Create named groups like 'Core Companies' or 'Mass Recruiters', build email templates once, and share them across the entire T&P team."}
                 </p>
               </div>
               <div className="flex flex-col gap-3 mt-4 font-mono text-xs">
@@ -139,11 +140,10 @@ const BentoGrid: React.FC = () => {
                     className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50"
                   >
                     <div
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        i === agentSteps.length - 1
+                      className={`w-1.5 h-1.5 rounded-full ${i === agentSteps.length - 1
                           ? "bg-gray-500 animate-pulse"
                           : "bg-green-500"
-                      }`}
+                        }`}
                     />
                     <div className={step.color}>{step.text}</div>
                   </div>
@@ -154,25 +154,25 @@ const BentoGrid: React.FC = () => {
 
           {/* Card 4 - AI */}
           <BentoCard
-            title="Hyper-Personalization"
-            description="Agents read the prospect's latest posts and company news to write 1-of-1 emails."
+            title="Personalized per Company"
+            description="Each email is tailored with the company name, contact, and role from your CSV — no generic blasts."
             icon={<BrainCircuit size={20} />}
           />
 
           {/* Card 5 - Smart Groups */}
           <BentoCard
-            title="Agent Teams"
-            description="Organize agents into squads: Researchers, Copywriters, and Closers."
+            title="Smart Contact Groups"
+            description="Segment companies into groups and target the right audience for each campaign — placement, internship, or custom drives."
             icon={<Users size={20} />}
           />
 
           {/* Card 6 - Wide */}
           <BentoCard
-            title="Performance Learning"
+            title="Campaign Tracking"
             description={
               <span className="block md:max-w-[50%]">
-                Agents learn from reply rates in real-time. If a subject line
-                fails, they iterate automatically.
+                Track delivery and open rates per campaign in real-time. See
+                which companies engaged and follow up at the right time.
               </span>
             }
             icon={<BarChart3 size={20} />}
