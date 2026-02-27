@@ -105,6 +105,91 @@ group_members = Table(
 Index("idx_group_members_user", group_members.c.user_id)
 Index("idx_group_members_group", group_members.c.group_id)
 
+# ---------------- Templates ----------------
+
+templates = Table(
+    "templates",
+    metadata,
+    Column(
+        "uuid",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column("name", String(255), nullable=False),
+    Column("content", Text, nullable=False),
+    Column(
+        "created_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+)
+
+Index("idx_templates_created_by", templates.c.created_by)
+Index("idx_templates_created_at", templates.c.created_at)
+
+# ---------------- Mails ----------------
+
+mails = Table(
+    "mails",
+    metadata,
+    Column(
+        "uuid",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column("subject", String(255), nullable=False),
+    Column("body", Text, nullable=False),
+    Column(
+        "template_id",
+        UUID(as_uuid=True),
+        nullable=True,
+    ),
+    Column(
+        "group_id",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "created_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "status",
+        String(30),
+        nullable=False,
+        server_default="draft",
+    ),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+    Column(
+        "sent_at",
+        DateTime(timezone=True),
+        nullable=True,
+    ),
+)
+
+Index("idx_mails_created_by", mails.c.created_by)
+Index("idx_mails_group_id", mails.c.group_id)
+Index("idx_mails_status", mails.c.status)
+Index("idx_mails_created_at", mails.c.created_at)
+
 # Partial unique index — one OAuth identity per provider
 Index(
     "idx_users_oauth_unique",

@@ -207,3 +207,11 @@ __marimo__/
 
 uv.lock
 .agent/
+
+# Testing & Development Artifacts
+token.txt
+user2_token.txt
+mail_id.txt
+group_id.txt
+draft_mail_id.txt
+update_role.py

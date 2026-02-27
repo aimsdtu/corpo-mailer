@@ -16,10 +16,18 @@ async def lifespan(app: FastAPI):
     """Manage application lifespan — pool + schema init on startup, teardown on shutdown."""
     setup_logging()
     logger.info("Starting application…")
-    await init_db()
+    try:
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.warning(f"Database initialization skipped: {e}")
+        logger.warning("Running in development mode without database")
     yield
     logger.info("Shutting down…")
-    await close_db()
+    try:
+        await close_db()
+    except Exception as e:
+        logger.warning(f"Database cleanup failed: {e}")
 
 
 app = FastAPI(
@@ -49,4 +57,4 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
