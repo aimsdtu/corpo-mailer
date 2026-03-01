@@ -5,6 +5,7 @@ from sqlalchemy import insert, select, update, delete
 
 from app.db.database import Database
 from app.db.tables import groups, group_members
+from app.api.models.group import GroupResponse, GroupMemberResponse
 
 
 class GroupService:
@@ -14,7 +15,7 @@ class GroupService:
 
     # ---------------- Groups ----------------
 
-    async def create_group(self, name: str, bio: str, owner_id: UUID):
+    async def create_group(self, name: str, bio: str, owner_id: UUID) -> GroupResponse:
 
         stmt = (
             insert(groups)
@@ -33,9 +34,9 @@ class GroupService:
         # creator becomes admin
         await self.add_member(group["uuid"], owner_id, "admin")
 
-        return group
+        return GroupResponse.model_validate(dict(group))
 
-    async def edit_group(self, group_id: UUID, name: str | None, bio: str | None):
+    async def edit_group(self, group_id: UUID, name: str | None, bio: str | None) -> GroupResponse | None:
 
         fields = {}
 
@@ -55,21 +56,24 @@ class GroupService:
             .returning(groups)
         )
 
-        return await self.db.fetch_one(stmt)
+        row = await self.db.fetch_one(stmt)
+        return GroupResponse.model_validate(dict(row)) if row else None
 
-    async def get_group(self, group_id: UUID):
+    async def get_group(self, group_id: UUID) -> GroupResponse | None:
 
         stmt = select(groups).where(groups.c.uuid == group_id)
 
-        return await self.db.fetch_one(stmt)
+        row = await self.db.fetch_one(stmt)
+        return GroupResponse.model_validate(dict(row)) if row else None
 
-    async def list_groups(self):
+    async def list_groups(self) -> list[GroupResponse]:
 
         stmt = select(groups).order_by(groups.c.created_at.desc())
 
-        return await self.db.fetch_all(stmt)
+        rows = await self.db.fetch_all(stmt)
+        return [GroupResponse.model_validate(dict(row)) for row in rows]
 
-    async def delete_group(self, group_id: UUID):
+    async def delete_group(self, group_id: UUID) -> None:
 
         await self.db.execute(
             delete(group_members).where(
@@ -88,7 +92,7 @@ class GroupService:
         group_id: UUID,
         user_id: UUID,
         role: str = "user",
-    ):
+    ) -> None:
 
         stmt = insert(group_members).values(
             group_id=group_id,
@@ -99,7 +103,7 @@ class GroupService:
 
         await self.db.execute(stmt)
 
-    async def remove_member(self, group_id: UUID, user_id: UUID):
+    async def remove_member(self, group_id: UUID, user_id: UUID) -> None:
 
         stmt = delete(group_members).where(
             group_members.c.group_id == group_id,
@@ -113,7 +117,7 @@ class GroupService:
         group_id: UUID,
         user_id: UUID,
         role: str,
-    ):
+    ) -> None:
 
         stmt = (
             update(group_members)
@@ -126,7 +130,7 @@ class GroupService:
 
         await self.db.execute(stmt)
 
-    async def get_member_role(self, group_id: UUID, user_id: UUID):
+    async def get_member_role(self, group_id: UUID, user_id: UUID) -> str | None:
 
         stmt = select(group_members.c.role).where(
             group_members.c.group_id == group_id,
@@ -134,18 +138,18 @@ class GroupService:
         )
 
         row = await self.db.fetch_one(stmt)
-
         return row["role"] if row else None
 
-    async def list_members(self, group_id: UUID):
+    async def list_members(self, group_id: UUID) -> list[GroupMemberResponse]:
 
         stmt = select(group_members).where(
             group_members.c.group_id == group_id
         )
 
-        return await self.db.fetch_all(stmt)
+        rows = await self.db.fetch_all(stmt)
+        return [GroupMemberResponse.model_validate(dict(row)) for row in rows]
 
-    async def get_user_groups(self, user_id: UUID):
+    async def get_user_groups(self, user_id: UUID) -> list[GroupResponse]:
 
         stmt = (
             select(groups)
@@ -156,4 +160,5 @@ class GroupService:
             .where(group_members.c.user_id == user_id)
         )
 
-        return await self.db.fetch_all(stmt)
+        rows = await self.db.fetch_all(stmt)
+        return [GroupResponse.model_validate(dict(row)) for row in rows]
