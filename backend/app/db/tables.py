@@ -37,6 +37,73 @@ users = Table(
         name="auth_method_required",
     ),
 )
+# ---------------- Groups ----------------
+
+groups = Table(
+    "groups",
+    metadata,
+
+    Column(
+        "uuid",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+
+    Column("name", String(150), nullable=False),
+
+    Column("bio", Text),
+
+    Column(
+        "created_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+)
+
+Index("idx_groups_created_by", groups.c.created_by)
+
+
+# ---------------- Group Members ----------------
+
+group_members = Table(
+    "group_members",
+    metadata,
+
+    Column(
+        "group_id",
+        UUID(as_uuid=True),
+        primary_key=True,
+    ),
+
+    Column(
+        "user_id",
+        UUID(as_uuid=True),
+        primary_key=True,
+    ),
+
+    Column(
+        "role",
+        String(30),
+        nullable=False,
+        server_default="user",
+    ),
+
+    Column(
+        "joined_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+)
+
+Index("idx_group_members_user", group_members.c.user_id)
+Index("idx_group_members_group", group_members.c.group_id)
 
 # Partial unique index — one OAuth identity per provider
 Index(

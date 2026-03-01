@@ -3,6 +3,28 @@
  */
 import { apiFetch } from "./client";
 import type { TokenResponse, User } from "@/lib/auth/store";
+/* ------------------------------------------------------------------ */
+/*  Groups                                                             */
+/* ------------------------------------------------------------------ */
+
+export interface Group {
+  uuid: string;
+  name: string;
+  bio?: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GroupMember {
+  user_id: string;
+  role: string;
+  joined_at: string;
+}
+
+export interface CreateGroupPayload {
+  name: string;
+  bio?: string;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Auth                                                               */
@@ -87,4 +109,72 @@ export async function countUsers(params?: { designation?: string; access_level?:
   if (params?.access_level) qs.set("access_level", params.access_level);
   const suffix = qs.toString() ? `?${qs}` : "";
   return apiFetch<{ count: number }>(`/users/count${suffix}`);
+}
+/* ------------------------------------------------------------------ */
+/*  Groups                                                             */
+/* ------------------------------------------------------------------ */
+
+export async function createGroup(payload: CreateGroupPayload) {
+  return apiFetch<Group>("/groups", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listGroups() {
+  return apiFetch<Group[]>("/groups");
+}
+
+export async function getGroup(groupId: string) {
+  return apiFetch<Group>(`/groups/${groupId}`);
+}
+
+export async function deleteGroup(groupId: string) {
+  return apiFetch<void>(`/groups/${groupId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function myGroups() {
+  return apiFetch<Group[]>("/groups/me/groups");
+}
+
+/* ---------------- Members ---------------- */
+
+export async function addMember(groupId: string, userId: string) {
+  return apiFetch<void>(
+    `/groups/${groupId}/members/${userId}`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function removeMember(groupId: string, userId: string) {
+  return apiFetch<void>(
+    `/groups/${groupId}/members/${userId}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+export async function updateMemberRole(
+  groupId: string,
+  userId: string,
+  role: string,
+) {
+  return apiFetch<void>(
+    `/groups/${groupId}/members/${userId}/role`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    },
+  );
+}
+
+export async function listMembers(groupId: string) {
+  return apiFetch<GroupMember[]>(
+    `/groups/${groupId}/members`,
+  );
 }
