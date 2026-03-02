@@ -105,6 +105,211 @@ group_members = Table(
 Index("idx_group_members_user", group_members.c.user_id)
 Index("idx_group_members_group", group_members.c.group_id)
 
+# ---------------- Templates ----------------
+
+templates = Table(
+    "templates",
+    metadata,
+    Column(
+        "uuid",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column("name", String(255), nullable=False),
+    Column("content", Text, nullable=False),
+    Column(
+        "group_id",
+        UUID(as_uuid=True),
+        nullable=True,
+        comment="NULL for global templates, UUID for group-specific templates",
+    ),
+    Column(
+        "created_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+)
+
+Index("idx_templates_created_by", templates.c.created_by)
+Index("idx_templates_created_at", templates.c.created_at)
+Index("idx_templates_group_id", templates.c.group_id)
+
+# ---------------- Mails ----------------
+
+mails = Table(
+    "mails",
+    metadata,
+    Column(
+        "uuid",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column("subject", String(255), nullable=False),
+    Column("body", Text, nullable=False),
+    Column(
+        "llm_body",
+        Text,
+        nullable=True,
+        comment="AI-generated body (kept separate from user edits)",
+    ),
+    Column(
+        "template_id",
+        UUID(as_uuid=True),
+        nullable=True,
+    ),
+    Column(
+        "group_id",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "created_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "status",
+        String(30),
+        nullable=False,
+        server_default="draft",
+        comment="draft|pending_approval|approved|sent|failed",
+    ),
+    Column(
+        "approved_by",
+        UUID(as_uuid=True),
+        nullable=True,
+        comment="Who approved this mail (moderator/admin/owner)",
+    ),
+    Column(
+        "approved_at",
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the mail was approved",
+    ),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+    Column(
+        "sent_at",
+        DateTime(timezone=True),
+        nullable=True,
+    ),
+)
+
+Index("idx_mails_created_by", mails.c.created_by)
+Index("idx_mails_group_id", mails.c.group_id)
+Index("idx_mails_status", mails.c.status)
+Index("idx_mails_created_at", mails.c.created_at)
+Index("idx_mails_approved_by", mails.c.approved_by)
+
+# ---------------- Mail Diffs (Edit History) ----------------
+
+mail_diffs = Table(
+    "mail_diffs",
+    metadata,
+    Column(
+        "id",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column(
+        "mail_id",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "field_name",
+        String(50),
+        nullable=False,
+        comment="subject|body",
+    ),
+    Column(
+        "old_value",
+        Text,
+        nullable=True,
+        comment="Previous value before edit",
+    ),
+    Column(
+        "new_value",
+        Text,
+        nullable=False,
+        comment="New value after edit",
+    ),
+    Column(
+        "edited_by",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "editor_role",
+        String(30),
+        nullable=False,
+        comment="user|moderator|admin|owner",
+    ),
+    Column(
+        "edited_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+)
+
+Index("idx_mail_diffs_mail_id", mail_diffs.c.mail_id)
+Index("idx_mail_diffs_edited_by", mail_diffs.c.edited_by)
+Index("idx_mail_diffs_edited_at", mail_diffs.c.edited_at)
+
+# -------- Group Templates (Optional Scope per Group) --------
+
+group_templates = Table(
+    "group_templates",
+    metadata,
+    Column(
+        "id",
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=func.gen_random_uuid(),
+    ),
+    Column(
+        "group_id",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "template_id",
+        UUID(as_uuid=True),
+        nullable=False,
+    ),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+    ),
+)
+
+Index("idx_group_templates_group", group_templates.c.group_id)
+Index("idx_group_templates_template", group_templates.c.template_id)
+Index(
+    "idx_group_templates_unique",
+    group_templates.c.group_id,
+    group_templates.c.template_id,
+    unique=True,
+)
+
 # Partial unique index — one OAuth identity per provider
 Index(
     "idx_users_oauth_unique",

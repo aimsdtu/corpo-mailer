@@ -27,6 +27,21 @@ def _get_service(db: Database = Depends(get_db)) -> GroupService:
 
 
 # -------------------------------------------------------------------
+# My Groups (must come before /{group_id})
+# -------------------------------------------------------------------
+
+
+@router.get("/me/groups", response_model=list[GroupResponse])
+async def my_groups(
+    user=Depends(inject_user),
+    service: GroupService = Depends(_get_service),
+):
+    return await service.get_user_groups(
+        UUID(user["sub"])
+    )
+
+
+# -------------------------------------------------------------------
 # Groups
 # -------------------------------------------------------------------
 
@@ -48,8 +63,18 @@ async def create_group(
 @router.get("/{group_id}", response_model=GroupResponse)
 async def get_group(
     group_id: UUID,
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Superuser can view any group; others must be a member
+    if user["role"] != "superuser":
+        role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view this group",
+            )
+
     group = await service.get_group(group_id)
 
     if not group:
@@ -63,9 +88,13 @@ async def get_group(
 
 @router.get("", response_model=list[GroupResponse])
 async def list_groups(
+    user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
-    return await service.list_groups()
+    # Only superuser sees all groups; everyone else sees their own
+    if user["role"] == "superuser":
+        return await service.list_groups()
+    return await service.get_user_groups(UUID(user["sub"]))
 
 
 @router.patch("/{group_id}", response_model=GroupResponse)
@@ -76,6 +105,15 @@ async def update_group(
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Superuser can edit any group; admin must be group admin
+    if user["role"] != "superuser":
+        caller_group_role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if caller_group_role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be an admin of this group to edit it",
+            )
+
     group = await service.edit_group(
         group_id,
         body.name,
@@ -107,33 +145,51 @@ async def delete_group(
 
 
 @router.post("/{group_id}/members/{user_id}")
-@require_role("admin", "superuser")
+@require_role("moderator", "admin", "superuser")
 async def add_member(
     group_id: UUID,
     user_id: UUID,
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Only superuser can manage any group; others need group-level moderator/admin
+    if user["role"] != "superuser":
+        caller_group_role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if caller_group_role not in ("moderator", "admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be a moderator or admin in this group",
+            )
+
     await service.add_member(group_id, user_id)
 
     return {"status": "added"}
 
 
 @router.delete("/{group_id}/members/{user_id}")
-@require_role("admin", "superuser")
+@require_role("moderator", "admin", "superuser")
 async def remove_member(
     group_id: UUID,
     user_id: UUID,
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Only superuser can manage any group; others need group-level moderator/admin
+    if user["role"] != "superuser":
+        caller_group_role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if caller_group_role not in ("moderator", "admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be a moderator or admin in this group",
+            )
+
     await service.remove_member(group_id, user_id)
 
     return {"status": "removed"}
 
 
 @router.patch("/{group_id}/members/{user_id}/role")
-@require_role("admin", "superuser")
+@require_role("moderator", "admin", "superuser")
 async def update_member_role(
     group_id: UUID,
     user_id: UUID,
@@ -141,6 +197,15 @@ async def update_member_role(
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Only superuser can manage any group; others need group-level admin
+    if user["role"] != "superuser":
+        caller_group_role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if caller_group_role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only group admins can change member roles",
+            )
+
     await service.update_member_role(
         group_id,
         user_id,
@@ -151,25 +216,19 @@ async def update_member_role(
 
 
 @router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
-@require_role("admin", "superuser")
+@require_role("moderator", "admin", "superuser")
 async def list_members(
     group_id: UUID,
     user=Depends(inject_user),
     service: GroupService = Depends(_get_service),
 ):
+    # Only superuser can list any group; others must be a member
+    if user["role"] != "superuser":
+        role = await service.get_member_role(group_id, UUID(user["sub"]))
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this group",
+            )
     return await service.list_members(group_id)
 
-
-# -------------------------------------------------------------------
-# My Groups
-# -------------------------------------------------------------------
-
-
-@router.get("/me/groups", response_model=list[GroupResponse])
-async def my_groups(
-    user=Depends(inject_user),
-    service: GroupService = Depends(_get_service),
-):
-    return await service.get_user_groups(
-        UUID(user["sub"])
-    )

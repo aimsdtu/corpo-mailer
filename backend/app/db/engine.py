@@ -30,6 +30,24 @@ async def init_db() -> None:
     )
     async with _engine.begin() as conn:
         await conn.run_sync(metadata.create_all)
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE templates
+                ADD COLUMN IF NOT EXISTS group_id UUID;
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE mails
+                ADD COLUMN IF NOT EXISTS llm_body TEXT,
+                ADD COLUMN IF NOT EXISTS approved_by UUID,
+                ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+                """
+            )
+        )
     logger.info("Database initialised")
 
 

@@ -26,7 +26,7 @@ def _parse_uuid(raw: str) -> UUID:
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-@require_role("admin")
+@require_role("admin", "superuser")
 async def create_user(
     body: UserCreate,
     user: dict = Depends(inject_user),
@@ -44,7 +44,7 @@ async def create_user(
 
 
 @router.get("/count", response_model=dict)
-@require_role("admin", "moderator")
+@require_role("admin", "moderator", "superuser")
 async def count_users(
     designation: str | None = Query(None),
     access_level: str | None = Query(None),
@@ -55,7 +55,7 @@ async def count_users(
 
 
 @router.get("/{uuid}", response_model=UserResponse)
-@require_role("user", "admin", "moderator")
+@require_role("user", "admin", "moderator", "superuser")
 async def get_user(
     uuid: str,
     user: dict = Depends(inject_user),
@@ -68,7 +68,7 @@ async def get_user(
 
 
 @router.get("", response_model=list[UserResponse])
-@require_role("admin", "moderator")
+@require_role("admin", "moderator", "superuser")
 async def list_users(
     designation: str | None = Query(None),
     access_level: str | None = Query(None),
@@ -84,21 +84,37 @@ async def list_users(
 
 
 @router.patch("/{uuid}", response_model=UserResponse)
-@require_role("user", "admin", "moderator")
+@require_role("user", "admin", "moderator", "superuser")
 async def update_user(
     uuid: str,
     body: UserUpdate,
     user: dict = Depends(inject_user),
     service: UserService = Depends(_get_service),
 ):
-    result = await service.update_user(_parse_uuid(uuid), body)
+    target_uuid = _parse_uuid(uuid)
+    caller_role = user.get("role", "user")
+    caller_uuid = user.get("sub", "")
+
+    # Regular users and moderators can only update themselves
+    if caller_role not in ("admin", "superuser") and str(target_uuid) != caller_uuid:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only update your own profile")
+
+    # Only admin/superuser can change privileged fields
+    if caller_role not in ("admin", "superuser"):
+        if body.access_level is not None or body.is_active is not None or body.email_verified is not None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Only admin/superuser can change access_level, is_active, or email_verified",
+            )
+
+    result = await service.update_user(target_uuid, body)
     if not result:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
     return UserService.to_response(result)
 
 
 @router.put("/{uuid}/password", status_code=status.HTTP_204_NO_CONTENT)
-@require_role("user", "admin")
+@require_role("user", "admin", "superuser")
 async def update_password(
     uuid: str,
     body: PasswordUpdate,
@@ -113,7 +129,7 @@ async def update_password(
 
 
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
-@require_role("admin")
+@require_role("admin", "superuser")
 async def delete_user(
     uuid: str,
     user: dict = Depends(inject_user),

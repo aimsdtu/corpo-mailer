@@ -128,6 +128,6 @@ async def logout(response: Response):
 
 
 @router.get("/me", response_model=MeResponse)
-@require_role("user", "admin", "moderator")
+@require_role("user", "admin", "moderator", "superuser")
 async def me(user: dict = Depends(inject_user)):
     return MeResponse(sub=user["sub"], role=user["role"], provider=user["provider"], email=user["email"])
