@@ -20,8 +20,13 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.warning(f"Database initialization skipped: {e}")
-        logger.warning("Running in development mode without database")
+        # In non-development environments, fail fast to avoid a partially-started app
+        env = getattr(settings, "env", None)
+        if env not in {"development", "dev", "local"}:
+            logger.error("Database initialization failed in non-development environment; shutting down.", exc_info=e)
+            raise
+        # In development, allow running without a database for local testing
+        logger.warning(f"Database initialization skipped in development: {e}")
     yield
     logger.info("Shutting down…")
     try:

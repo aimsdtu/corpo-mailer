@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
@@ -16,7 +18,7 @@ class GroupUpdate(BaseModel):
 
 
 class GroupMemberUpdate(BaseModel):
-    role: str  # user | moderator | admin
+    role: Literal["user", "moderator", "admin"]
 
 
 # ---------- Responses ----------

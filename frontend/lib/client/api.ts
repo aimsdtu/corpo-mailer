@@ -189,10 +189,13 @@ export interface MailResponse {
   llm_body?: string | null;
   group_id: string;
   created_by: string;
-  status: string;
   template_id?: string | null;
+  status: string;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  diffs?: MailDiffResponse[] | null;
   created_at: string;
-  updated_at: string;
+  sent_at?: string | null;
 }
 
 export interface MailCreate {
@@ -210,12 +213,14 @@ export interface MailUpdate {
 }
 
 export interface MailDiffResponse {
-  uuid: string;
+  id: string;
   mail_id: string;
-  changed_by: string;
-  changed_at: string;
-  old_body: string;
-  new_body: string;
+  field_name: string;
+  old_value?: string | null;
+  new_value: string;
+  edited_by: string;
+  editor_role: string;
+  edited_at: string;
 }
 
 export async function createMail(payload: MailCreate) {

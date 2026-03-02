@@ -224,7 +224,7 @@ mail_diffs = Table(
     metadata,
     Column(
         "id",
-        String(255),
+        UUID(as_uuid=True),
         primary_key=True,
         server_default=func.gen_random_uuid(),
     ),
@@ -280,7 +280,7 @@ group_templates = Table(
     metadata,
     Column(
         "id",
-        String(255),
+        UUID(as_uuid=True),
         primary_key=True,
         server_default=func.gen_random_uuid(),
     ),

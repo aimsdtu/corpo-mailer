@@ -28,7 +28,7 @@ class User(BaseModel):
     name: str
     hash: Optional[str] = None
     pfp: Optional[str] = None
-    access_level: Literal["user", "admin", "moderator"] = "user"
+    access_level: Literal["user", "admin", "moderator", "superuser"] = "user"
     metadata: Dict[str, Any] = Field(default_factory=dict)
     oauth_provider: Optional[Literal["google", "microsoft", "github"]] = None
     oauth_id: Optional[str] = None
@@ -77,7 +77,7 @@ class UserCreate(BaseModel):
     registered_email: EmailStr
     name: str
     password: str = Field(..., min_length=8)
-    access_level: Literal["user", "admin", "moderator"] = "user"
+    access_level: Literal["user", "admin", "moderator", "superuser"] = "user"
 
 
 class UserCreateOAuth(BaseModel):
@@ -89,7 +89,7 @@ class UserCreateOAuth(BaseModel):
     oauth_provider: Literal["google", "microsoft", "github"]
     oauth_id: str
     email_verified: bool = False
-    access_level: Literal["user", "admin", "moderator"] = "user"
+    access_level: Literal["user", "admin", "moderator", "superuser"] = "user"
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ class UserUpdate(BaseModel):
 
     name: Optional[str] = None
     pfp: Optional[str] = None
-    access_level: Optional[Literal["user", "admin", "moderator"]] = None
+    access_level: Optional[Literal["user", "admin", "moderator", "superuser"]] = None
     metadata: Optional[Dict[str, Any]] = None
     email_verified: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -113,3 +113,4 @@ class PasswordUpdate(BaseModel):
 
     old_password: str
     new_password: str = Field(..., min_length=8)
+    confirm_password: str = Field(..., min_length=8)

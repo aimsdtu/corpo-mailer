@@ -196,7 +196,7 @@ class MailService:
             fields["subject"] = updates.subject
             await self.db.execute(
                 insert(mail_diffs).values(
-                    id=str(uuid4()),
+                    id=uuid4(),
                     mail_id=mail_id,
                     field_name="subject",
                     old_value=row["subject"],
@@ -211,7 +211,7 @@ class MailService:
             fields["body"] = updates.body
             await self.db.execute(
                 insert(mail_diffs).values(
-                    id=str(uuid4()),
+                    id=uuid4(),
                     mail_id=mail_id,
                     field_name="body",
                     old_value=row["body"],
