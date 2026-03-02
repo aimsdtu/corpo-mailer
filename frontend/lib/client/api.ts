@@ -178,3 +178,156 @@ export async function listMembers(groupId: string) {
     `/groups/${groupId}/members`,
   );
 }
+/* ------------------------------------------------------------------ */
+/*  Mails                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface MailResponse {
+  uuid: string;
+  subject: string;
+  body: string;
+  llm_body?: string | null;
+  group_id: string;
+  created_by: string;
+  status: string;
+  template_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MailCreate {
+  subject: string;
+  body: string;
+  llm_body?: string | null;
+  group_id: string;
+  template_id?: string | null;
+}
+
+export interface MailUpdate {
+  subject?: string;
+  body?: string;
+  llm_body?: string | null;
+}
+
+export interface MailDiffResponse {
+  uuid: string;
+  mail_id: string;
+  changed_by: string;
+  changed_at: string;
+  old_body: string;
+  new_body: string;
+}
+
+export async function createMail(payload: MailCreate) {
+  return apiFetch<MailResponse>("/mails", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getMail(mailId: string) {
+  return apiFetch<MailResponse>(`/mails/${mailId}`);
+}
+
+export async function listMails() {
+  return apiFetch<MailResponse[]>("/mails");
+}
+
+export async function listGroupMails(groupId: string) {
+  return apiFetch<MailResponse[]>(`/mails/groups/${groupId}`);
+}
+
+export async function updateMail(mailId: string, payload: MailUpdate) {
+  return apiFetch<MailResponse>(`/mails/${mailId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitMail(mailId: string) {
+  return apiFetch<MailResponse>(`/mails/${mailId}/submit`, {
+    method: "POST",
+  });
+}
+
+export async function approveMail(mailId: string) {
+  return apiFetch<MailResponse>(`/mails/${mailId}/approve`, {
+    method: "POST",
+  });
+}
+
+export async function rejectMail(mailId: string) {
+  return apiFetch<MailResponse>(`/mails/${mailId}/reject`, {
+    method: "POST",
+  });
+}
+
+export async function sendMail(mailId: string) {
+  return apiFetch<MailResponse>(`/mails/${mailId}/send`, {
+    method: "POST",
+  });
+}
+
+export async function getMailDiffs(mailId: string) {
+  return apiFetch<MailDiffResponse[]>(`/mails/${mailId}/diffs`);
+}
+
+export async function deleteMail(mailId: string) {
+  return apiFetch<void>(`/mails/${mailId}`, {
+    method: "DELETE",
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Templates                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface TemplateResponse {
+  uuid: string;
+  name: string;
+  content: string;
+  group_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateCreate {
+  name: string;
+  content: string;
+  group_id: string;
+}
+
+export interface TemplateUpdate {
+  name?: string;
+  content?: string;
+}
+
+export async function createTemplate(payload: TemplateCreate) {
+  return apiFetch<TemplateResponse>("/templates", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getTemplate(templateId: string) {
+  return apiFetch<TemplateResponse>(`/templates/${templateId}`);
+}
+
+export async function listTemplates(groupId?: string) {
+  const qs = groupId ? `?group_id=${groupId}` : "";
+  return apiFetch<TemplateResponse[]>(`/templates${qs}`);
+}
+
+export async function updateTemplate(templateId: string, payload: TemplateUpdate) {
+  return apiFetch<TemplateResponse>(`/templates/${templateId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTemplate(templateId: string) {
+  return apiFetch<void>(`/templates/${templateId}`, {
+    method: "DELETE",
+  });
+}

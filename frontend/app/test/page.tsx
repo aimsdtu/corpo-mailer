@@ -47,6 +47,19 @@ export default function TestPage() {
   const [groupId, setGroupId] = useState("");
   const [memberId, setMemberId] = useState("");
   const [memberRole, setMemberRole] = useState("user");
+  const [currentGroup, setCurrentGroup] = useState("");
+
+  // mail fields
+  const [mailSubject, setMailSubject] = useState("");
+  const [mailBody, setMailBody] = useState("");
+  const [mailLlmBody, setMailLlmBody] = useState("");
+  const [mailId, setMailId] = useState("");
+  const [mailTemplateId, setMailTemplateId] = useState("");
+
+  // template fields
+  const [templateName, setTemplateName] = useState("");
+  const [templateContent, setTemplateContent] = useState("");
+  const [templateId, setTemplateId] = useState("");
 
   useEffect(() => {
     initAuthSync();
@@ -195,6 +208,119 @@ export default function TestPage() {
     log("GET", "/groups/me/groups", res);
   };
 
+  /* ---- Mails ---- */
+
+  const handleCreateMail = async () => {
+    if (!currentGroup) {
+      alert("Please select a group first");
+      return;
+    }
+    const res = await api.createMail({
+      subject: mailSubject,
+      body: mailBody,
+      llm_body: mailLlmBody || undefined,
+      group_id: currentGroup,
+      template_id: mailTemplateId || undefined,
+    });
+    log("POST", "/mails", res);
+  };
+
+  const handleGetMail = async () => {
+    const res = await api.getMail(mailId);
+    log("GET", `/mails/${mailId}`, res);
+  };
+
+  const handleListMails = async () => {
+    const res = await api.listMails();
+    log("GET", "/mails", res);
+  };
+
+  const handleListGroupMails = async () => {
+    if (!currentGroup) {
+      alert("Please select a group first");
+      return;
+    }
+    const res = await api.listGroupMails(currentGroup);
+    log("GET", `/mails/groups/${currentGroup}`, res);
+  };
+
+  const handleUpdateMail = async () => {
+    const res = await api.updateMail(mailId, {
+      subject: mailSubject || undefined,
+      body: mailBody || undefined,
+      llm_body: mailLlmBody || undefined,
+    });
+    log("PATCH", `/mails/${mailId}`, res);
+  };
+
+  const handleSubmitMail = async () => {
+    const res = await api.submitMail(mailId);
+    log("POST", `/mails/${mailId}/submit`, res);
+  };
+
+  const handleApproveMail = async () => {
+    const res = await api.approveMail(mailId);
+    log("POST", `/mails/${mailId}/approve`, res);
+  };
+
+  const handleRejectMail = async () => {
+    const res = await api.rejectMail(mailId);
+    log("POST", `/mails/${mailId}/reject`, res);
+  };
+
+  const handleSendMail = async () => {
+    const res = await api.sendMail(mailId);
+    log("POST", `/mails/${mailId}/send`, res);
+  };
+
+  const handleGetMailDiffs = async () => {
+    const res = await api.getMailDiffs(mailId);
+    log("GET", `/mails/${mailId}/diffs`, res);
+  };
+
+  const handleDeleteMail = async () => {
+    const res = await api.deleteMail(mailId);
+    log("DELETE", `/mails/${mailId}`, res);
+  };
+
+  /* ---- Templates ---- */
+
+  const handleCreateTemplate = async () => {
+    if (!currentGroup) {
+      alert("Please select a group first");
+      return;
+    }
+    const res = await api.createTemplate({
+      name: templateName,
+      content: templateContent,
+      group_id: currentGroup,
+    });
+    log("POST", "/templates", res);
+  };
+
+  const handleGetTemplate = async () => {
+    const res = await api.getTemplate(templateId);
+    log("GET", `/templates/${templateId}`, res);
+  };
+
+  const handleListTemplates = async () => {
+    const res = await api.listTemplates(currentGroup || undefined);
+    log("GET", `/templates${currentGroup ? `?group_id=${currentGroup}` : ""}`, res);
+  };
+
+  const handleUpdateTemplate = async () => {
+    const res = await api.updateTemplate(templateId, {
+      name: templateName || undefined,
+      content: templateContent || undefined,
+    });
+    log("PATCH", `/templates/${templateId}`, res);
+  };
+
+  const handleDeleteTemplate = async () => {
+    const res = await api.deleteTemplate(templateId);
+    log("DELETE", `/templates/${templateId}`, res);
+  };
+
   /* ================================================================ */
   /*  Render                                                           */
   /* ================================================================ */
@@ -222,6 +348,10 @@ export default function TestPage() {
         <p className="text-sm text-gray-400">
           <span className="font-medium text-gray-300">User:</span>{" "}
           {user ? `${user.name} (${user.registered_email}) — ${user.access_level}` : "not logged in"}
+        </p>
+        <p className="text-sm text-gray-400">
+          <span className="font-medium text-gray-300">Current Group:</span>{" "}
+          {currentGroup ? currentGroup : "none selected"}
         </p>
       </section>
 
@@ -348,6 +478,198 @@ export default function TestPage() {
             </button>
             <button className={btnAltCls} onClick={handleListMembers}>
               List Members
+            </button>
+          </div>
+        </Panel>
+
+        {/* ---- Current Group Selector ---- */}
+        <Panel title="Current Group">
+          <input
+            className={inputCls}
+            placeholder="Group UUID"
+            value={currentGroup}
+            onChange={(e) => setCurrentGroup(e.target.value)}
+          />
+          <p className="text-sm text-gray-400">
+            Currently selected group: <span className="font-medium text-gray-300">{currentGroup || "none"}</span>
+          </p>
+        </Panel>
+
+        {/* ---- Mails: Create ---- */}
+        <Panel title="Create Mail">
+          <input
+            className={inputCls}
+            placeholder="Subject"
+            value={mailSubject}
+            onChange={(e) => setMailSubject(e.target.value)}
+          />
+          <textarea
+            className={`${inputCls} resize-none`}
+            placeholder="Body"
+            rows={3}
+            value={mailBody}
+            onChange={(e) => setMailBody(e.target.value)}
+          />
+          <textarea
+            className={`${inputCls} resize-none`}
+            placeholder="LLM Body (optional)"
+            rows={2}
+            value={mailLlmBody}
+            onChange={(e) => setMailLlmBody(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="Template ID"
+            value={mailTemplateId}
+            onChange={(e) => setMailTemplateId(e.target.value)}
+          />
+          <button className={btnCls} onClick={handleCreateMail}>
+            Create Mail
+          </button>
+        </Panel>
+
+        {/* ---- Mails: Read/List ---- */}
+        <Panel title="List & Get Mails">
+          <input
+            className={inputCls}
+            placeholder="Mail UUID"
+            value={mailId}
+            onChange={(e) => setMailId(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnAltCls} onClick={handleListMails}>
+              List All
+            </button>
+            <button className={btnAltCls} onClick={handleListGroupMails}>
+              List Group
+            </button>
+            <button className={btnAltCls} onClick={handleGetMail}>
+              Get Mail
+            </button>
+            <button className={btnAltCls} onClick={handleGetMailDiffs}>
+              Get Diffs
+            </button>
+          </div>
+        </Panel>
+
+        {/* ---- Mails: Update ---- */}
+        <Panel title="Update Mail">
+          <input
+            className={inputCls}
+            placeholder="Mail UUID"
+            value={mailId}
+            onChange={(e) => setMailId(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="Subject"
+            value={mailSubject}
+            onChange={(e) => setMailSubject(e.target.value)}
+          />
+          <textarea
+            className={`${inputCls} resize-none`}
+            placeholder="Body"
+            rows={3}
+            value={mailBody}
+            onChange={(e) => setMailBody(e.target.value)}
+          />
+          <button className={btnCls} onClick={handleUpdateMail}>
+            Update
+          </button>
+        </Panel>
+
+        {/* ---- Mails: Submit/Approve/Reject/Send ---- */}
+        <Panel title="Mail Actions">
+          <input
+            className={inputCls}
+            placeholder="Mail UUID"
+            value={mailId}
+            onChange={(e) => setMailId(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnAltCls} onClick={handleSubmitMail}>
+              Submit
+            </button>
+            <button className={btnAltCls} onClick={handleApproveMail}>
+              Approve
+            </button>
+            <button className={btnAltCls} onClick={handleRejectMail}>
+              Reject
+            </button>
+            <button className={btnAltCls} onClick={handleSendMail}>
+              Send
+            </button>
+            <button className={btnDangerCls} onClick={handleDeleteMail}>
+              Delete
+            </button>
+          </div>
+        </Panel>
+
+        {/* ---- Templates: Create ---- */}
+        <Panel title="Create Template">
+          <input
+            className={inputCls}
+            placeholder="Template Name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+          />
+          <textarea
+            className={`${inputCls} resize-none`}
+            placeholder="Template Content"
+            rows={4}
+            value={templateContent}
+            onChange={(e) => setTemplateContent(e.target.value)}
+          />
+          <button className={btnCls} onClick={handleCreateTemplate}>
+            Create Template
+          </button>
+        </Panel>
+
+        {/* ---- Templates: Read/List ---- */}
+        <Panel title="List & Get Templates">
+          <input
+            className={inputCls}
+            placeholder="Template UUID"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnAltCls} onClick={handleListTemplates}>
+              List Templates
+            </button>
+            <button className={btnAltCls} onClick={handleGetTemplate}>
+              Get Template
+            </button>
+          </div>
+        </Panel>
+
+        {/* ---- Templates: Update/Delete ---- */}
+        <Panel title="Update Template">
+          <input
+            className={inputCls}
+            placeholder="Template UUID"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          />
+          <input
+            className={inputCls}
+            placeholder="Template Name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+          />
+          <textarea
+            className={`${inputCls} resize-none`}
+            placeholder="Template Content"
+            rows={4}
+            value={templateContent}
+            onChange={(e) => setTemplateContent(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button className={btnCls} onClick={handleUpdateTemplate}>
+              Update
+            </button>
+            <button className={btnDangerCls} onClick={handleDeleteTemplate}>
+              Delete
             </button>
           </div>
         </Panel>

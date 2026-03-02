@@ -35,7 +35,7 @@ class MailCreate(BaseModel):
     body: str = Field(..., min_length=1, description="Email body content (user-editable)")
     llm_body: str | None = Field(None, description="Optional: AI-generated body (stored separately)")
     group_id: UUID = Field(..., description="ID of recipient group")
-    template_id: UUID | None = Field(None, description="Optional template ID")
+    template_id: UUID = Field(..., description="Template ID")
 
 
 class MailUpdate(BaseModel):
