@@ -2,10 +2,22 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
-import { Check, X, Clock, Mail, RefreshCw } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Check, X, Clock, Mail, Users, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { GroupDataTable, GroupRequest } from "@/components/ui/group-data-table";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { ListFilter, Columns } from "lucide-react";
 
 interface EmailJob {
   id: string;
@@ -44,6 +56,32 @@ const initialJobs: EmailJob[] = [
   },
 ];
 
+const initialGroupRequests: GroupRequest[] = [
+  {
+    id: "gr-1",
+    groupName: "Engineering Team",
+    userName: "John Doe",
+    userEmail: "john@example.com",
+    requestDate: "2025-04-28",
+    contributors: [
+      { src: "https://i.pravatar.cc/150?u=1", alt: "User 1", fallback: "U1" },
+      { src: "https://i.pravatar.cc/150?u=2", alt: "User 2", fallback: "U2" },
+    ],
+    status: { text: "Pending", variant: "pending" },
+  },
+  {
+    id: "gr-2",
+    groupName: "Sales Department",
+    userName: "Jane Smith",
+    userEmail: "jane@example.com",
+    requestDate: "2025-04-27",
+    contributors: [
+      { src: "https://i.pravatar.cc/150?u=3", alt: "User 3", fallback: "U3" },
+    ],
+    status: { text: "Pending", variant: "pending" },
+  },
+];
+
 const statusColors: Record<EmailJob["status"], string> = {
   pending: "bg-yellow-100 text-yellow-800",
   sent: "bg-green-100 text-green-800",
@@ -51,22 +89,42 @@ const statusColors: Record<EmailJob["status"], string> = {
   rejected: "bg-red-100 text-red-800",
 };
 
+const allColumns: (keyof GroupRequest)[] = ["groupName", "userName", "userEmail", "requestDate", "contributors", "status"];
+
 const AdminDashboard: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isInitialized } = useAuth();
   const router = useRouter();
   const [jobs, setJobs] = useState<EmailJob[]>(initialJobs);
+  const [groupRequests, setGroupRequests] = useState<GroupRequest[]>(initialGroupRequests);
+  const [activeTab, setActiveTab] = useState<"emails" | "groups">("emails");
+  
+  // Group filters
+  const [groupFilter, setGroupFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [visibleColumns, setVisibleColumns] = useState<Set<keyof GroupRequest>>(new Set(allColumns));
+
+  const filteredGroupRequests = useMemo(() => {
+    return groupRequests.filter((request) => {
+      const groupMatch = groupFilter === "" || request.groupName.toLowerCase().includes(groupFilter.toLowerCase());
+      const statusMatch = statusFilter === "all" || request.status.variant === statusFilter;
+      return groupMatch && statusMatch;
+    });
+  }, [groupRequests, groupFilter, statusFilter]);
 
   React.useEffect(() => {
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (isInitialized && (!isAuthenticated || user?.role !== "admin")) {
       router.push("/login");
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, isInitialized, router]);
+
+  if (!isInitialized || !isAuthenticated || user?.role !== "admin") {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">Loading...</div>;
+  }
 
   const handleApprove = (id: string) => {
     setJobs((prev) =>
       prev.map((j) => (j.id === id ? { ...j, status: "sent" } : j))
     );
-    alert("Email Approved & 'Sent' (Demo)!");
   };
 
   const handleReject = (id: string) => {
@@ -75,121 +133,193 @@ const AdminDashboard: React.FC = () => {
     );
   };
 
-  const handleDelete = (id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
+  const handleGroupApprove = (id: string) => {
+    setGroupRequests((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: { text: "Approved", variant: "approved" } } : r))
+    );
   };
 
+  const handleGroupReject = (id: string) => {
+    setGroupRequests((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: { text: "Rejected", variant: "rejected" } } : r))
+    );
+  };
+
+  const toggleColumn = (column: keyof GroupRequest) => {
+    setVisibleColumns((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(column)) {
+        newSet.delete(column);
+      } else {
+        newSet.add(column);
+      }
+      return newSet;
+    });
+  };
+
+  const pendingCount = jobs.filter((j) => j.status === "pending").length;
+  const pendingGroupCount = groupRequests.filter((r) => r.status.variant === "pending").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Approval Queue</h1>
-            <p className="text-gray-500">
-              Review generated emails before they are sent.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+          <p className="text-gray-600">Manage email approvals and group requests</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 border-b border-gray-200">
           <button
-            type="button"
-            onClick={() => alert("Refreshed!")}
-            className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
-            aria-label="Refresh"
+            onClick={() => setActiveTab("emails")}
+            className={`pb-4 px-4 font-medium transition-colors relative ${
+              activeTab === "emails"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
           >
-            <RefreshCw size={20} />
+            <div className="flex items-center gap-2">
+              <Mail size={20} />
+              Email Approvals
+              {pendingCount > 0 && (
+                <span className="bg-yellow-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {pendingCount}
+                </span>
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("groups")}
+            className={`pb-4 px-4 font-medium transition-colors relative ${
+              activeTab === "groups"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Users size={20} />
+              Group Requests
+              {pendingGroupCount > 0 && (
+                <span className="bg-yellow-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {pendingGroupCount}
+                </span>
+              )}
+            </div>
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {jobs.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <Mail size={48} className="mx-auto mb-4 opacity-20" />
-              <p>No emails in queue.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="p-6 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* Metadata */}
-                    <div className="md:w-1/4 space-y-2">
-                      <div>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[job.status]}`}
-                        >
-                          {job.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Sender</p>
-                        <p className="font-medium text-sm text-gray-900">
-                          {job.senderName}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Receiver</p>
-                        <p className="font-medium text-sm text-gray-900">
-                          {job.receiverName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {job.receiverEmail}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Tone</p>
-                        <p className="font-medium text-sm text-indigo-600">
-                          {job.tone}
-                        </p>
-                      </div>
-                      <div className="text-xs text-gray-400 pt-2 flex items-center gap-1">
-                        <Clock size={12} />
-                        {new Date(job.timestamp).toLocaleString()}
-                      </div>
+        {/* Email Approvals Tab */}
+        {activeTab === "emails" && (
+          <div className="space-y-6">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900">{job.subject}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[job.status]}`}>
+                        {job.status}
+                      </span>
                     </div>
-
-                    {/* Content */}
-                    <div className="md:w-1/2 bg-gray-50 p-4 rounded-lg border border-gray-200 font-mono text-sm text-gray-700 whitespace-pre-wrap">
-                      {job.body}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="md:w-1/4 flex flex-col justify-center gap-3">
-                      {job.status === "pending" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(job.id)}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-                          >
-                            <Check size={16} /> Approve & Send
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReject(job.id)}
-                            className="w-full bg-white hover:bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-                          >
-                            <X size={16} /> Reject
-                          </button>
-                        </>
-                      )}
-                      {job.status !== "pending" && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(job.id)}
-                          className="text-gray-400 hover:text-gray-600 text-sm underline"
-                        >
-                          Archive
-                        </button>
-                      )}
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span>From: <strong>{job.senderName}</strong></span>
+                      <span>To: <strong>{job.receiverName}</strong> ({job.receiverEmail})</span>
+                      <span>Tone: {job.tone}</span>
                     </div>
                   </div>
+                  <Clock className="text-gray-400" size={20} />
                 </div>
-              ))}
+
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-gray-700 whitespace-pre-wrap text-sm">{job.body}</p>
+                </div>
+
+                {job.status === "pending" && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleApprove(job.id)}
+                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Check size={18} />
+                      Approve & Send
+                    </button>
+                    <button
+                      onClick={() => handleReject(job.id)}
+                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <X size={18} />
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Group Requests Tab */}
+        {activeTab === "groups" && (
+          <div>
+            <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center">
+              <div className="flex flex-1 gap-4">
+                <Input
+                  placeholder="Filter by group name..."
+                  value={groupFilter}
+                  onChange={(e) => setGroupFilter(e.target.value)}
+                  className="max-w-xs"
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <ListFilter className="h-4 w-4" />
+                      <span>Status</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem checked={statusFilter === "all"} onCheckedChange={() => setStatusFilter("all")}>All</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilter === "pending"} onCheckedChange={() => setStatusFilter("pending")}>Pending</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilter === "approved"} onCheckedChange={() => setStatusFilter("approved")}>Approved</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilter === "rejected"} onCheckedChange={() => setStatusFilter("rejected")}>Rejected</DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Columns className="h-4 w-4" />
+                    <span>Columns</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {allColumns.map((column) => (
+                    <DropdownMenuCheckboxItem
+                      key={column}
+                      className="capitalize"
+                      checked={visibleColumns.has(column)}
+                      onCheckedChange={() => toggleColumn(column)}
+                    >
+                      {column}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-        </div>
+
+            <GroupDataTable
+              requests={filteredGroupRequests}
+              visibleColumns={visibleColumns}
+              onApprove={handleGroupApprove}
+              onReject={handleGroupReject}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

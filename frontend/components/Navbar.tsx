@@ -8,8 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { name: "Features", href: "/" },
-  { name: "Agent Dashboard", href: "/dashboard" },
-  { name: "Admin Console", href: "/admin" },
+  { name: "Groups", href: "/groups" },
+  { name: "About Us", href: "/about" },
+  { name: "Contact Us", href: "/contact" },
   { name: "Developers", href: "/developer" },
 ];
 
@@ -19,6 +20,12 @@ const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -85,7 +92,9 @@ const Navbar: React.FC = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
+            {!mounted ? (
+              <div className="w-32 h-9"></div> // skeleton/spacer to avoid layout shift
+            ) : isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
                   <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -149,7 +158,7 @@ const Navbar: React.FC = () => {
               </Link>
             ))}
             <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col space-y-3 px-3">
-              {isAuthenticated ? (
+              {!mounted ? null : isAuthenticated ? (
                 <button
                   onClick={() => {
                     logout();

@@ -25,11 +25,11 @@ const Hero: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column: Text Content */}
           <div className="max-w-4xl z-20 relative">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-800 mb-8 hover:bg-gray-200 transition-colors cursor-pointer">
+            <Link href="/about" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-800 mb-8 hover:bg-gray-200 transition-colors cursor-pointer">
               <span className="flex h-2 w-2 rounded-full bg-green-500" />
-              Built for DTU's Training & Placement Cell
+              T&P Workflow Automation
               <ArrowRight size={12} />
-            </div>
+            </Link>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 leading-[1.1] mb-8">
               Corporate outreach,{" "}

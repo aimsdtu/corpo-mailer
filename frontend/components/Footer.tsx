@@ -18,6 +18,10 @@ const footerSections = [
     links: ["About", "Blog", "Docs", "Help Center", "Community"],
   },
   {
+    title: "Company",
+    links: ["About Us", "Contact Us", "Careers", "Partners"],
+  },
+  {
     title: "Legal",
     links: ["Privacy", "Terms", "Security", "GDPR"],
   },
@@ -27,7 +31,7 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-50 border-t border-gray-200 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-8 mb-12">
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-bold text-xl tracking-tighter">
@@ -38,7 +42,7 @@ const Footer: React.FC = () => {
               </span>
             </Link>
             <p className="text-gray-500 text-sm mb-6 max-w-xs">
-              The agentic email infrastructure for modern teams. Built for
+              Automate the T&P Cell&apos;s entire placement outreach. Built for
               high-volume, personalized outreach with strict governance.
             </p>
             <div className="flex gap-4">
@@ -74,12 +78,28 @@ const Footer: React.FC = () => {
               <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-gray-500 hover:text-black transition-colors"
-                    >
-                      {link}
-                    </a>
+                    {link === "About Us" ? (
+                      <Link
+                        href="/about"
+                        className="text-sm text-gray-500 hover:text-black transition-colors"
+                      >
+                        {link}
+                      </Link>
+                    ) : link === "Contact Us" ? (
+                      <Link
+                        href="/contact"
+                        className="text-sm text-gray-500 hover:text-black transition-colors"
+                      >
+                        {link}
+                      </Link>
+                    ) : (
+                      <a
+                        href="#"
+                        className="text-sm text-gray-500 hover:text-black transition-colors"
+                      >
+                        {link}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

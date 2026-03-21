@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (username: string, role: "user" | "admin") => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isInitialized: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,19 +20,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
-    const saved = localStorage.getItem("cm_auth_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Read from localStorage only after hydration is complete
+    const saved = localStorage.getItem("cm_auth_user");
+    if (saved) {
+      try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUser(JSON.parse(saved));
+            } catch (e) {
+        console.error("Failed to parse auth user", e);
+      }
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialized) return; // Don't wipe on first render if empty
     if (user) {
       localStorage.setItem("cm_auth_user", JSON.stringify(user));
     } else {
       localStorage.removeItem("cm_auth_user");
     }
-  }, [user]);
+  }, [user, isInitialized]);
 
   const login = (username: string, role: "user" | "admin") => {
     setUser({ username, role });
@@ -43,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, login, logout, isAuthenticated: !!user }}
+      value={{ user, login, logout, isAuthenticated: !!user, isInitialized }}
     >
       {children}
     </AuthContext.Provider>

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Bot,
   Send,
@@ -16,13 +16,29 @@ import {
 } from "lucide-react";
 import { generateEmail, type EmailTone } from "@/lib/gemini";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const TONES: EmailTone[] = ["Casual", "Formal", "Creative"];
 
+const TEMPLATE_CONTEXTS: Record<string, string> = {
+  "sprint-planning": "Weekly sprint planning meeting invitation and agenda",
+  "code-review": "Request for code review on recent pull request",
+  "bug-report": "Report a critical bug found in production",
+  "feature-proposal": "Propose a new feature for the product roadmap",
+  "sales-outreach": "Initial outreach to potential client about our services",
+  "follow-up": "Follow up on previous conversation with prospect",
+  "product-demo": "Schedule a product demonstration meeting",
+  "proposal": "Send business proposal to potential partner",
+  "offer-letter": "Extend job offer to candidate",
+  "interview": "Invite candidate for interview",
+  "onboarding": "Welcome new team member to the company",
+  "performance": "Schedule annual performance review meeting",
+};
+
 const UserDashboard: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitialized } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Form state
   const [senderName, setSenderName] = useState("");
@@ -45,12 +61,24 @@ const UserDashboard: React.FC = () => {
     text: string;
   } | null>(null);
 
+  // Load template context if provided
+  useEffect(() => {
+    const templateId = searchParams.get("template");
+    if (templateId && TEMPLATE_CONTEXTS[templateId]) {
+      setContext(TEMPLATE_CONTEXTS[templateId]);
+    }
+  }, [searchParams]);
+
   // Guard: redirect if not authenticated
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (isInitialized && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isInitialized, router]);
+
+  if (!isInitialized || !isAuthenticated) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">Loading...</div>;
+  }
 
   const handleGenerate = async () => {
     if (!context || !senderName || !receiverName) {

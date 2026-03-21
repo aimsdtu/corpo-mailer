@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
 
     if (username === "user" && password === "demo123") {
       login("user", "user");
-      router.push("/dashboard");
+      router.push("/groups");
     } else if (username === "admin" && password === "admin123") {
       login("admin", "admin");
       router.push("/admin");
