@@ -1,18 +1,10 @@
-from fastapi import FastAPI
-from app.api.routes import auth, user, mail, template, group
-from app.api.middleware.ratelimit import RateLimitMiddleware
+"""API v1 router — aggregates all resource routers under /api/v1."""
+from fastapi import APIRouter
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="CorpoMailer API")
-    
-    app.add_middleware(RateLimitMiddleware)
-    
-    app.include_router(auth.router, prefix="/auth", tags=["auth"])
-    app.include_router(user.router, prefix="/users", tags=["users"])
-    app.include_router(mail.router, prefix="/mail", tags=["mail"])
-    app.include_router(template.router, prefix="/templates", tags=["templates"])
-    app.include_router(group.router, prefix="/groups", tags=["groups"])
-    
-    return app
+from app.api.routes.auth import router as auth_router
+from app.api.routes.user import router as user_router
 
-app = create_app()
+router = APIRouter(prefix="/api/v1")
+
+router.include_router(auth_router)
+router.include_router(user_router)
