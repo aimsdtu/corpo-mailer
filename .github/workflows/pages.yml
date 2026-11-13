@@ -1,0 +1,65 @@
+# Publishes the Corpo Mailer website (frontend) to GitHub Pages.
+#
+# The whole app is plain static files that run in the browser. There is no server and no secret here:
+# leads are kept in one shared file in Google Drive and each person's email goes through their own Gmail.
+# Setup steps are in docs/HOSTING.md and docs/GMAIL_SETUP.md.
+name: Corpo Mailer website (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+        env:
+          # The site is served from https://<user>.github.io/<repo>/
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          # The Google "client ID" (not a secret). Set it as a repository variable named
+          # GOOGLE_CLIENT_ID; if it is empty, the login page asks for it instead.
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          # Who may change the team settings. Optional repository variable ADMIN_EMAILS (comma separated);
+          # empty means the two built-in admins.
+          NEXT_PUBLIC_ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
+      - run: touch out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

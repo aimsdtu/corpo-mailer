@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Corpo Mailer: frontend
 
-## Getting Started
-
-First, run the development server:
+The whole app: a static Next.js site (`output: "export"`) that runs in the browser. Sign-in, storage,
+email and replies all go through the signed-in person's Google account; drafting calls OpenRouter.
+Setup: [`../docs/GMAIL_SETUP.md`](../docs/GMAIL_SETUP.md) and [`../docs/HOSTING.md`](../docs/HOSTING.md).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local      # optional: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+npm install
+npm run dev                     # http://localhost:3000
+npm test                        # vitest: the engine (leads, import, drafts, approval gate, replies, Google, saving)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route | What it's for |
+| --- | --- |
+| `/` | Dashboard: who needs you today (unread replies, overdue follow-ups), counts by status |
+| `/leads` | The tracker. **Table** (inline status, channels, remarks) or **Board** by status with drag and drop. Filters, Add lead, Import CSV, Export |
+| `/leads/detail?id=` | One lead: edit, write and approve emails and LinkedIn notes, log outreach/replies, thread |
+| `/leads/import` | Import a CSV with a preview of exactly what will happen before anything is saved |
+| `/companies`, `/companies/detail?id=` | Companies and their people |
+| `/drafts` | Every email waiting for review, plus sent history |
+| `/settings` | Account and save status, AI keys and models, event wording and the team brief, **Team workspace** (who has access, add a teammate), backup download / restore |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it works
 
-## Learn More
+```
+lib/engine/        the app itself, no UI: core (leads), importer, drafts + approval gate, replies,
+                   persistence (debounced Drive saves), app (singleton the UI reads)
+lib/engine/google/ Google sign-in (token model), shared Drive file, Gmail send/read
+lib/api.ts         thin facade the pages call
+```
 
-To learn more about Next.js, take a look at the following resources:
+* Data is one JSON file, *Corpo Mailer shared data*, in Google Drive, shared by the team (the app asks for Google's `drive`
+  permission so an added teammate's sign-in finds the file by itself; it only touches that file). A save
+  never overwrites: it reads the file, merges this person's changes onto it (`lib/engine/merge.ts`:
+  per-record, later edit wins, deletions kept as tombstones, a sent email stays sent), then writes.
+  A background check (about every 30 s) brings in teammates' changes. A spare copy is kept in the
+  browser until Drive confirms, and nothing is overwritten if the file can't be read.
+* Ids come from the clock plus a random part, so two people adding leads at once can't collide.
+  Each person's mailbox position is stored under their email in the file.
+* **Sending** needs Approve (a hash of recipient, subject and body is recorded) then press-and-hold
+  Send (or a confirm dialog for keyboard use). Editing after approval voids it. Before an email goes
+  out the sender claims the draft in the shared file and looks once more for a teammate's claim, so
+  two people pressing Send together send one email. A send that was interrupted is recovered rather
+  than repeated.
+* **Replies** are matched by Message-ID / Gmail thread (sender address as fallback); auto-replies and
+  your own mail are ignored; bounces mark the lead do-not-contact.
+* Browser settings (`corpo.googleClientId`, `corpo.openrouterKey` (this browser's own keys, one per line; the team's keys live in the shared file's settings), `corpo.models`, `corpo.workspace.<email>`) live in local storage.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## What the AI is told
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Every draft and revision carries a standing **team brief** (Settings: what it is doing and how to
+sound), the event facts, and up to three **past messages** as style references. Past messages come
+from the archive of everything the team has sent (nothing to maintain): emails that got a reply come
+first, then the newest, and a lead's own earlier email is left out (the history already has it). You
+can also paste sample messages in Settings. They guide tone and length only; the AI is told never to
+reuse names or facts from them.
 
-## Deploy on Vercel
+## Feedback on drafts and LinkedIn notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Every draft has **Ask for changes**; the AI rewrites it, **Undo** and earlier versions keep your
+wording, and a revision clears any approval. A LinkedIn note is 300 characters at most, with Copy and
+"I sent it on LinkedIn"; it is never sent from here.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build notes
+
+`NEXT_PUBLIC_BASE_PATH` is the `/<repo>` prefix for Pages. `lib/` is un-ignored in `.gitignore`
+because the repo's root Python `.gitignore` ignores `lib/`.
